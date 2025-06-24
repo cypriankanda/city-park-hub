@@ -3,10 +3,13 @@ services:
     name: city-park-hub
     env: python
     buildCommand: |
-      pip install -r requirements.txt
+      # Install dependencies from root requirements.txt
+      pip install -r /opt/render/project/src/requirements.txt
+      # Print working directory for debugging
       python -c "import os; print('Working directory:', os.getcwd())"
     startCommand: |
-      cd parking_backend
+      # Change to the correct directory and start the app
+      cd /opt/render/project/src/parking_backend
       python run.py
     envVars:
       - key: FLASK_ENV
@@ -17,6 +20,8 @@ services:
         value: your-jwt-secret-key-here
       - key: DATABASE_URL
         value: postgresql://user:password@host:port/dbname
+      - key: PYTHONPATH
+        value: /opt/render/project/src/parking_backend
     healthCheckPath: /api/auth/health
     healthCheckTimeout: 10000
     healthCheckInterval: 30000
