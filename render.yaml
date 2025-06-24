@@ -9,7 +9,11 @@ services:
       python -c "import os; print('Working directory:', os.getcwd())"
       # List contents of current directory
       python -c "import os; print('Directory contents:', os.listdir())"
+      # List contents of app directory
+      python -c "import os; print('App directory contents:', os.listdir('app'))"
     startCommand: |
+      # Set PYTHONPATH to include both src and app directories
+      export PYTHONPATH=/opt/render/project/src:/opt/render/project/src/app
       # Start the application
       python run.py
     envVars:
@@ -22,7 +26,7 @@ services:
       - key: DATABASE_URL
         value: postgresql://user:password@host:port/dbname
       - key: PYTHONPATH
-        value: /opt/render/project/src
+        value: /opt/render/project/src:/opt/render/project/src/app
       - key: PORT
         value: "8080"
       - key: HOST
