@@ -4,12 +4,17 @@ services:
     env: python
     buildCommand: |
       # Install dependencies from root requirements.txt
-      pip install -r /opt/render/project/src/requirements.txt
+      pip install -r requirements.txt
       # Print working directory for debugging
       python -c "import os; print('Working directory:', os.getcwd())"
+      # List contents of current directory
+      python -c "import os; print('Directory contents:', os.listdir())"
     startCommand: |
       # Change to the correct directory and start the app
       cd /opt/render/project/src/parking_backend
+      # List contents to verify files are present
+      python -c "import os; print('Parking backend contents:', os.listdir())"
+      # Start the application
       python run.py
     envVars:
       - key: FLASK_ENV
@@ -22,6 +27,10 @@ services:
         value: postgresql://user:password@host:port/dbname
       - key: PYTHONPATH
         value: /opt/render/project/src/parking_backend
+      - key: PORT
+        value: "8080"
+      - key: HOST
+        value: "0.0.0.0"
     healthCheckPath: /api/auth/health
     healthCheckTimeout: 10000
     healthCheckInterval: 30000
