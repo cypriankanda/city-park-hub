@@ -1,31 +1,37 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Car, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/context/AuthContext';
 import { authService } from '@/lib/auth';
+import { LoginRequest } from '@/lib/auth';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    rememberMe: false
   });
 
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(formData.email, formData.password);
+      const loginData: LoginRequest = {
+        email: formData.email,
+        password: formData.password,
+        remember_me: formData.rememberMe
+      };
+
+      const response = await authService.login(loginData);
+      console.log('Login success:', response);
       navigate('/dashboard');
-    } catch (error) {
-      console.error('Login failed:', error);
-      alert('Login failed. Please check your credentials.');
+    } catch (err) {
+      console.error('Login error:', err);
+      alert('Login failed. Please check your credentials and try again.');
     }
   };
 
@@ -52,13 +58,13 @@ const Login = () => {
                     type="email"
                     placeholder="Enter your email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="pl-10 h-12 border-gray-300 focus:border-parking-navy"
                     required
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Password</label>
                 <div className="relative">
@@ -67,7 +73,7 @@ const Login = () => {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="pl-10 pr-10 h-12 border-gray-300 focus:border-parking-navy"
                     required
                   />
@@ -83,7 +89,12 @@ const Login = () => {
 
               <div className="flex items-center justify-between">
                 <label className="flex items-center">
-                  <input type="checkbox" className="rounded border-gray-300 text-parking-navy focus:ring-parking-navy" />
+                  <input
+                    type="checkbox"
+                    checked={formData.rememberMe}
+                    onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                    className="rounded border-gray-300 text-parking-navy focus:ring-parking-navy"
+                  />
                   <span className="ml-2 text-sm text-gray-600">Remember me</span>
                 </label>
                 <Link to="/reset-password" className="text-sm text-parking-red hover:text-red-700 font-medium">

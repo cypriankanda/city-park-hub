@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Car, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
@@ -17,11 +16,46 @@ const Register = () => {
     confirmPassword: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement registration logic
-    console.log('Registration attempt:', formData);
+  
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+  
+    try {
+      const response = await fetch("https://city-park-hub-1rf7.onrender.com/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          full_name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          confirm_password: formData.confirmPassword // ✅ This line was missing
+        })
+      });
+  
+      if (!response.ok) {
+        const error = await response.json();
+        const errorMsg =
+          error.detail ||
+          error.message ||
+          (typeof error === "string" ? error : JSON.stringify(error, null, 2));
+        alert(`Registration failed: ${errorMsg}`);
+        return;
+      }
+  
+      alert("Account created successfully!");
+    } catch (err) {
+      console.error("Registration error:", err);
+      alert("Network error. Please try again later.");
+    }
   };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-parking-navy via-blue-800 to-parking-red flex items-center justify-center p-4">

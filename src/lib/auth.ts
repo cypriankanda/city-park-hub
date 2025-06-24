@@ -4,6 +4,7 @@ import { API_BASE_URL } from './api';
 export interface LoginRequest {
   email: string;
   password: string;
+  remember_me: boolean;
 }
 
 export interface LoginResponse {
@@ -42,8 +43,12 @@ export const authService = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     try {
       const response = await axiosInstance.post('/api/auth/login', data);
+      const { access_token, user } = response.data;
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify(user));
       return response.data;
     } catch (error) {
+      console.error('Login error:', error);
       throw new Error('Login failed');
     }
   },
@@ -52,15 +57,26 @@ export const authService = {
     localStorage.setItem('token', token);
   },
 
-  getToken: (): string | null => {
+  getToken: () => {
     return localStorage.getItem('token');
+  },
+
+  setUser: (user: any) => {
+    localStorage.setItem('user', JSON.stringify(user));
+  },
+
+  getUser: () => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   },
 
   clearToken: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
   },
 
-  isLoggedIn: (): boolean => {
-    return !!localStorage.getItem('token');
-  }
+  isLoggedIn: () => {
+    const token = localStorage.getItem('token');
+    return !!token;
+  },
 };

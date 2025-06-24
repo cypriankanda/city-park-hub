@@ -1,12 +1,14 @@
 
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Car } from 'lucide-react';
+import { Menu, X, Car, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, logout } = useAuth();
 
   const isHomePage = location.pathname === '/';
 
@@ -48,16 +50,36 @@ const Navigation = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="outline" className="border-parking-navy text-parking-navy hover:bg-parking-navy hover:text-white">
-                Login
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button className="bg-parking-red hover:bg-red-700 text-white">
-                Sign Up
-              </Button>
-            </Link>
+            {!isAuthenticated ? (
+              <>
+                <Link to="/login">
+                  <Button variant="outline" className="border-parking-navy text-parking-navy hover:bg-parking-navy hover:text-white">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button className="bg-parking-red hover:bg-red-700 text-white">
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/profile">
+                  <Button variant="outline" className="border-parking-navy text-parking-navy hover:bg-parking-navy hover:text-white flex items-center space-x-2">
+                    <User className="h-4 w-4" />
+                    <span>Profile</span>
+                  </Button>
+                </Link>
+                <button
+                  onClick={logout}
+                  className="flex items-center space-x-1 text-parking-red hover:text-red-700 transition-colors duration-200"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -86,16 +108,36 @@ const Navigation = () => {
                 </a>
               ))}
               <div className="flex flex-col space-y-2 px-3 pt-2">
-                <Link to="/login">
-                  <Button variant="outline" className="w-full border-parking-navy text-parking-navy hover:bg-parking-navy hover:text-white">
-                    Login
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button className="w-full bg-parking-red hover:bg-red-700 text-white">
-                    Sign Up
-                  </Button>
-                </Link>
+                {!isAuthenticated ? (
+                  <>
+                    <Link to="/login">
+                      <Button variant="outline" className="w-full border-parking-navy text-parking-navy hover:bg-parking-navy hover:text-white">
+                        Login
+                      </Button>
+                    </Link>
+                    <Link to="/register">
+                      <Button className="w-full bg-parking-red hover:bg-red-700 text-white">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/profile">
+                      <Button variant="outline" className="w-full border-parking-navy text-parking-navy hover:bg-parking-navy hover:text-white flex items-center space-x-2">
+                        <User className="h-4 w-4" />
+                        <span>Profile</span>
+                      </Button>
+                    </Link>
+                    <button
+                      onClick={logout}
+                      className="w-full flex items-center justify-center space-x-1 text-parking-red hover:text-red-700 transition-colors duration-200"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
