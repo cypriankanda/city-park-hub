@@ -14,10 +14,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8080", "https://city-park-hub-1rf7.onrender.com"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["Authorization"],
 )
 
 # Dependency to get DB session
@@ -29,6 +30,10 @@ def get_db():
         db.close()
 
 # Authentication Routes
+@app.get("/")
+def root():
+    return {"message": "ParkSmart API is running"}
+
 @app.post("/api/auth/login", response_model=schemas.Token)
 def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
     return crud.login_user(db, data)
