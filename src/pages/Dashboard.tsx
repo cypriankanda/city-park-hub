@@ -1,12 +1,18 @@
-
 import { Car, MapPin, Clock, CreditCard, TrendingUp, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Navigation from '@/components/Navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
+
+  const handleBookNow = () => {
+    navigate('/booking');
+  };
+
   if (!user) {
     return <div>Loading...</div>;
   }
@@ -57,7 +63,10 @@ const Dashboard = () => {
                   <div>
                     <h3 className="text-xl font-semibold mb-2">Quick Book</h3>
                     <p className="text-red-100 mb-4">Reserve your usual parking spots</p>
-                    <Button className="bg-white text-parking-red hover:bg-gray-100">
+                    <Button 
+                      className="bg-white text-parking-red hover:bg-gray-100"
+                      onClick={handleBookNow}
+                    >
                       Book Now
                     </Button>
                   </div>

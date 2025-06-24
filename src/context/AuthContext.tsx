@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode'; // ✅ correct
+
+
 import { authService } from '../lib/auth';
-import jwt_decode from 'jwt-decode';
 
 interface AuthContextType {
   user: any | null;
@@ -21,7 +22,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (token) {
       try {
-        const decoded: any = jwt_decode(token);
+        const decoded: any = jwtDecode(token);
+
         setUser({ email: decoded.sub });
       } catch (err) {
         console.error('Invalid token', err);
@@ -34,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, remember_me: rememberMe })
+      body: JSON.stringify({ email, password, remember_me: rememberMe }),
     });
 
     if (!response.ok) {
@@ -53,30 +55,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const authContextValue = {
-    user,
-    token,
-    isAuthenticated: !!token,
-    login,
-    logout,
-    getToken: () => token
-  };
-
-  return <AuthContext.Provider value={authContextValue}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, logout, getToken: () => token }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
-};
-
-// ProtectedRoute.tsx
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-
-export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };

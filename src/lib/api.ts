@@ -8,5 +8,8 @@ export const api = {
   users: {
     profile: `${API_BASE_URL}/api/users/profile`,
   },
+  bookings: {
+    create: `${API_BASE_URL}/api/bookings?local_kw=true`
+  },
   // Add other API endpoints as needed
 };

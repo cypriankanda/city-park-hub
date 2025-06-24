@@ -4,8 +4,7 @@ import { Car, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { authService } from '@/lib/auth';
-import { LoginRequest } from '@/lib/auth';
+import { useAuth } from '@/context/AuthContext';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,29 +13,22 @@ const Login = () => {
     password: '',
     rememberMe: false
   });
-
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const loginData: LoginRequest = {
-        email: formData.email,
-        password: formData.password,
-        remember_me: formData.rememberMe
-      };
-
-      const response = await authService.login(loginData);
-      console.log('Login success:', response);
+      await login(formData.email, formData.password, formData.rememberMe);
       navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
-      alert('Login failed. Please check your credentials and try again.');
+      alert('Login failed. Please check your credentials.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-parking-navy via-blue-800 to-parking-red flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-parking-navy via-blue-800 to-parking-red p-4">
       <div className="w-full max-w-md animate-scale-in">
         <Card className="shadow-2xl border-0">
           <CardHeader className="text-center pb-2">
@@ -64,7 +56,6 @@ const Login = () => {
                   />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Password</label>
                 <div className="relative">
@@ -86,7 +77,6 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-
               <div className="flex items-center justify-between">
                 <label className="flex items-center">
                   <input
@@ -101,12 +91,10 @@ const Login = () => {
                   Forgot password?
                 </Link>
               </div>
-
               <Button type="submit" className="w-full h-12 bg-parking-navy hover:bg-blue-800 text-white font-semibold rounded-lg">
                 Sign In
               </Button>
             </form>
-
             <div className="text-center text-sm text-gray-600">
               Don't have an account?{' '}
               <Link to="/register" className="text-parking-red hover:text-red-700 font-medium">

@@ -12,6 +12,7 @@ import Parking from "./pages/Parking";
 import Admin from "./pages/Admin";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Booking from "./pages/Booking";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
         <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
         <Route path="/parking" element={<ProtectedRoute><Parking /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
 
         {/* Catch-all Route */}
         <Route path="*" element={<NotFound />} />
