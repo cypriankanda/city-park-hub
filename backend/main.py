@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from . import models, schemas, crud
+from backend import models, schemas, crud  # ✅ assuming your backend folder is named `backend`
 from .database import SessionLocal, engine
 from .auth import get_current_user
 
