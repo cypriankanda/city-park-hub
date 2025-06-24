@@ -3,17 +3,27 @@ services:
     name: city-park-hub
     env: python
     buildCommand: |
-      # Install dependencies from requirements.txt
+      # Create and activate virtual environment
+      python -m venv .venv
+      source .venv/bin/activate
+      
+      # Install dependencies
       pip install -r requirements.txt
-      # Print working directory for debugging
-      python -c "import os; print('Working directory:', os.getcwd())"
-      # List contents of current directory
-      python -c "import os; print('Directory contents:', os.listdir())"
-      # List contents of app directory
-      python -c "import os; print('App directory contents:', os.listdir('app'))"
+      
+      # Print debugging information
+      echo "Working directory: $(pwd)"
+      echo "Directory contents: $(ls -la)"
+      echo "App directory contents: $(ls -la app)"
+      
+      # List Python packages
+      pip list
     startCommand: |
-      # Set PYTHONPATH to include both src and app directories
+      # Activate virtual environment
+      source .venv/bin/activate
+      
+      # Set PYTHONPATH
       export PYTHONPATH=/opt/render/project/src:/opt/render/project/src/app
+      
       # Start the application
       python run.py
     envVars:
