@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: city-park-hub
+    env: python
+    buildCommand: |
+      # Install dependencies from requirements.txt
+      pip install -r requirements.txt
+      # Print working directory for debugging
+      python -c "import os; print('Working directory:', os.getcwd())"
+      # List contents of current directory
+      python -c "import os; print('Directory contents:', os.listdir())"
+    startCommand: |
+      # Start the application
+      python run.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        value: your-secret-key-here
+      - key: JWT_SECRET_KEY
+        value: your-jwt-secret-key-here
+      - key: DATABASE_URL
+        value: postgresql://user:password@host:port/dbname
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+      - key: PORT
+        value: "8080"
+      - key: HOST
+        value: "0.0.0.0"
+    healthCheckPath: /api/auth/health
+    healthCheckTimeout: 10000
+    healthCheckInterval: 30000
+    healthCheckThreshold: 3
+    instanceCount: 1
+    instanceSize: micro
+    rootDirectory: /opt/render/project/src
