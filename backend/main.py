@@ -11,64 +11,8 @@ from .auth import get_current_user
 # Initialize database
 models.Base.metadata.create_all(bind=engine)
 
-# Create API router
-api_router = APIRouter(prefix="/api")
-
-# Add auth routes
-@app.post("/api/auth/login", response_model=schemas.Token)
-def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
-    return crud.login_user(db, data)
-
-@app.post("/api/auth/register")
-async def register(data: schemas.RegisterRequest, db: Session = Depends(get_db)):
-    try:
-        return crud.register_user(db, data)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/api/auth/reset-password")
-def reset_password(data: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
-    return crud.send_reset_email(db, data)
-
-@app.post("/api/auth/verify-reset")
-def verify_reset(data: schemas.VerifyResetRequest, db: Session = Depends(get_db)):
-    return crud.verify_reset(db, data)
-
-@app.get("/api/auth/me", response_model=schemas.User)
-def get_me(current_user: schemas.User = Depends(get_current_user)):
-    return current_user
-
-@app.post("/api/auth/logout")
-def logout():
-    return {"message": "Logged out successfully"}
-
-# Add dashboard routes
-api_router.add_api_route("/dashboard/stats", get_stats, methods=["GET"])
-api_router.add_api_route("/dashboard/recent-bookings", recent_bookings, methods=["GET"])
-
-# Add bookings routes
-api_router.add_api_route("/bookings", list_bookings, methods=["GET"])
-api_router.add_api_route("/bookings", create_booking, methods=["POST"])
-api_router.add_api_route("/bookings/{booking_id}", update_booking, methods=["PUT"])
-api_router.add_api_route("/bookings/{booking_id}", delete_booking, methods=["DELETE"])
-api_router.add_api_route("/bookings/{booking_id}/extend", extend_booking, methods=["POST"])
-
-# Add parking routes
-api_router.add_api_route("/parking/spots", list_parking_spots, methods=["GET"])
-api_router.add_api_route("/parking/spots/{spot_id}", get_parking_spot, methods=["GET"])
-api_router.add_api_route("/parking/spots/{spot_id}/book", book_spot, methods=["POST"])
-
-# Add admin routes
-api_router.add_api_route("/admin/stats", admin_stats, methods=["GET"])
-api_router.add_api_route("/admin/activities", admin_activities, methods=["GET"])
-api_router.add_api_route("/admin/locations", list_locations, methods=["GET"])
-api_router.add_api_route("/admin/locations", create_location, methods=["POST"])
-api_router.add_api_route("/admin/locations/{location_id}", update_location, methods=["PUT"])
-
+# Create FastAPI app
 app = FastAPI(title="City Park Hub API", version="1.0.0")
-app.include_router(api_router)
 
 # CORS Middleware Setup
 app.add_middleware(
@@ -99,3 +43,140 @@ def get_db():
 @app.get("/")
 def root():
     return {"message": "ParkSmart API is running"}
+
+@app.post("/api/auth/login", response_model=schemas.Token)
+def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
+    return crud.login_user(db, data)
+
+@app.post("/api/auth/register")
+async def register(data: schemas.RegisterRequest, db: Session = Depends(get_db)):
+    try:
+        return crud.register_user(db, data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/reset-password")
+def reset_password(data: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    return crud.send_reset_email(db, data)
+
+@app.post("/api/auth/verify-reset")
+def verify_reset(data: schemas.VerifyResetRequest, db: Session = Depends(get_db)):
+    return crud.verify_reset(db, data)
+
+@app.get("/api/auth/me", response_model=schemas.User)
+def get_me(current_user: schemas.User = Depends(get_current_user)):
+    return current_user
+
+@app.post("/api/auth/logout")
+def logout():
+    return {"message": "Logged out successfully"}
+
+# -------------------- DASHBOARD ROUTES --------------------
+
+@app.get("/api/dashboard/stats")
+def get_stats(current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.get_user_dashboard_stats(db, current_user)
+
+@app.get("/api/dashboard/recent-bookings")
+def recent_bookings(current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.get_recent_bookings(db, current_user)
+
+# -------------------- BOOKINGS ROUTES --------------------
+
+@app.get("/api/bookings")
+def list_bookings(status: str = "all", search: str = "", current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.get_user_bookings(db, current_user, status, search)
+
+@app.post("/api/bookings")
+def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        spot = db.query(models.ParkingSpace).filter_by(id=data.parking_spot_id).first()
+        if not spot:
+            raise HTTPException(status_code=404, detail="Parking spot not found")
+        if spot.available_spots <= 0:
+            raise HTTPException(status_code=400, detail="No available spots")
+        if data.start_time >= data.end_time:
+            raise HTTPException(status_code=400, detail="Start time must be before end time")
+        if data.duration_hours <= 0:
+            raise HTTPException(status_code=400, detail="Duration must be greater than 0")
+
+        booking = models.Booking(
+            driver_id=current_user.id,
+            parking_space_id=data.parking_spot_id,
+            start_time=data.start_time,
+            end_time=data.end_time,
+            duration_hours=data.duration_hours,
+            payment_method="M-Pesa",
+            status="pending"
+        )
+        spot.available_spots -= 1
+        db.add(booking)
+        db.commit()
+        db.refresh(booking)
+
+        return {
+            "booking": {
+                "id": booking.id,
+                "parking_spot_id": booking.parking_space_id,
+                "start_time": booking.start_time,
+                "end_time": booking.end_time,
+                "duration_hours": booking.duration_hours,
+                "status": booking.status
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/bookings/{booking_id}")
+def update_booking(booking_id: int, data: schemas.UpdateBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.update_booking(db, current_user, booking_id, data)
+
+@app.delete("/api/bookings/{booking_id}")
+def delete_booking(booking_id: int, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.delete_booking(db, current_user, booking_id)
+
+@app.post("/api/bookings/{booking_id}/extend")
+def extend_booking(booking_id: int, data: schemas.ExtendBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.extend_booking(db, current_user, booking_id, data)
+
+# -------------------- PARKING ROUTES --------------------
+
+@app.get("/api/parking/spots")
+def list_parking_spots(lat: float = None, lng: float = None, radius: float = 5, search: str = "", filter: str = "available", db: Session = Depends(get_db)):
+    return crud.get_parking_spots(db, lat, lng, radius, search, filter)
+
+@app.get("/api/parking/spots/{spot_id}")
+def get_parking_spot(spot_id: int, db: Session = Depends(get_db)):
+    return crud.get_parking_spot(db, spot_id)
+
+@app.post("/api/parking/spots/{spot_id}/book")
+def book_spot(spot_id: int, data: schemas.BookSpotRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.book_parking_spot(db, current_user, spot_id, data)
+
+# -------------------- ADMIN ROUTES --------------------
+
+@app.get("/api/admin/stats")
+def admin_stats(current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.get_admin_stats(db)
+
+@app.get("/api/admin/activities")
+def admin_activities(current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.get_admin_activities(db)
+
+@app.get("/api/admin/locations")
+def list_locations(current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.list_parking_locations(db)
+
+@app.post("/api/admin/locations")
+def create_location(data: schemas.LocationRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.create_location(db, data)
+
+@app.put("/api/admin/locations/{location_id}")
+def update_location(location_id: int, data: schemas.LocationRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.update_location(db, location_id, data)
