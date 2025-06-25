@@ -106,7 +106,7 @@ class ParkingLocation(BaseModel):
 
 # ------------------ Request DTOs ------------------
 class CreateBookingRequest(BaseModel):
-    parking_spot_id: int
+    parking_space_id: int
     start_time: datetime
     end_time: datetime
     duration_hours: float

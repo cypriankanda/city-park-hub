@@ -11,5 +11,4 @@ export const api = {
   bookings: {
     create: `${API_BASE_URL}/api/bookings?local_kw=true`
   },
-  // Add other API endpoints as needed
 };

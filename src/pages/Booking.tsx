@@ -70,7 +70,17 @@ export default function Booking() {
       try {
         const isDev = import.meta.env.DEV;
         const endpoint = isDev ? '/api/bookings' : '/api/bookings';
-        await bookingApi.create(bookingData, endpoint);
+        console.log('Attempting booking with data:', {
+          parking_spot_id: bookingData.parking_spot_id,
+          start_time: bookingData.start_time.toISOString(),
+          end_time: bookingData.end_time.toISOString(),
+          duration_hours: bookingData.duration_hours
+        });
+        
+        const response = await bookingApi.create(bookingData, endpoint);
+        console.log('Booking response:', response);
+        toast.success('Booking successful!');
+        navigate('/dashboard');
 
         toast.success('Booking successful!');
         navigate('/dashboard');

@@ -6,16 +6,47 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const isDev = import.meta.env.DEV;
 const PROXY_URL = isDev ? '' : API_BASE_URL;
 
+// Function to get auth token
+const getAuthToken = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('No auth token found');
+    return null;
+  }
+  return `Bearer ${token}`;
+};
+
+// Create API client
 const apiClient = axios.create({
   baseURL: PROXY_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
   },
   withCredentials: true,
   timeout: 10000
 });
+
+// Add auth interceptor
+apiClient.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = token;
+  }
+  return config;
+}, (error) => {
+  console.error('Request error:', error);
+  return Promise.reject(error);
+});
+
+// Add response interceptor
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('Response error:', error.response?.data || error);
+    return Promise.reject(error);
+  }
+);
 
 // Add error interceptor
 apiClient.interceptors.response.use(
