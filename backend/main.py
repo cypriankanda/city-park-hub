@@ -82,8 +82,52 @@ def list_bookings(status: str = "all", search: str = "", current_user: schemas.U
 @app.post("/api/bookings")
 def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        return crud.create_booking(db, current_user, data)
+        # Validate parking spot exists and is available
+        spot = db.query(models.ParkingSpace).filter_by(id=data.parking_spot_id).first()
+        if not spot:
+            raise HTTPException(status_code=404, detail="Parking spot not found")
+        if spot.available_spots <= 0:
+            raise HTTPException(status_code=400, detail="No available spots")
+
+        # Validate time range
+        if data.start_time >= data.end_time:
+            raise HTTPException(status_code=400, detail="Start time must be before end time")
+        
+        # Validate duration
+        if data.duration_hours <= 0:
+            raise HTTPException(status_code=400, detail="Duration must be greater than 0")
+
+        # Create booking
+        booking = models.Booking(
+            driver_id=current_user.id,
+            parking_space_id=data.parking_spot_id,
+            start_time=data.start_time,
+            end_time=data.end_time,
+            duration_hours=data.duration_hours,
+            payment_method="M-Pesa",  # Placeholder
+            status="pending"
+        )
+        
+        # Update spot availability
+        spot.available_spots -= 1
+        db.add(booking)
+        db.commit()
+        db.refresh(booking)
+        
+        return {
+            "booking": {
+                "id": booking.id,
+                "parking_spot_id": booking.parking_space_id,
+                "start_time": booking.start_time,
+                "end_time": booking.end_time,
+                "duration_hours": booking.duration_hours,
+                "status": booking.status
+            }
+        }
+    except HTTPException:
+        raise
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.put("/api/bookings/{booking_id}")

@@ -83,7 +83,13 @@ export const bookingApi = {
       end_time: data.end_time.toISOString(),
       duration_hours: data.duration_hours
     };
-    return apiClient.post('/api/bookings?local_kw=true', requestData).then(res => res.data);
+    
+    return apiClient.post('/api/bookings?local_kw=true', requestData)
+      .then(res => res.data)
+      .catch(error => {
+        console.error('Booking API Error:', error.response?.data || error);
+        throw error;
+      });
   },
   getAll: () => apiClient.get('/api/bookings').then(res => res.data),
   update: (id: number, data: Partial<Booking>) => apiClient.put(`/api/bookings/${id}`, data).then(res => res.data),

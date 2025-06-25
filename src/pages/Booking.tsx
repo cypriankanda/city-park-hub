@@ -20,8 +20,8 @@ export default function Booking() {
   const [formData, setFormData] = useState({
     parkingSpotId: 0,
     startTime: new Date().toISOString(),
-    endTime: new Date().toISOString(),
-    durationHours: 0
+    endTime: new Date(new Date().getTime() + 2 * 60 * 60 * 1000).toISOString(), // Default to 2 hours from now
+    durationHours: 2
   });
 
   const { data: parkingSpots, isLoading: isLoadingSpots, error: spotsError } = useQuery({
@@ -58,7 +58,7 @@ export default function Booking() {
         start_time: new Date(formData.startTime),
         end_time: new Date(formData.endTime),
         duration_hours: formData.durationHours
-      };
+      } as const;
 
       try {
         await bookingApi.create(bookingData);
