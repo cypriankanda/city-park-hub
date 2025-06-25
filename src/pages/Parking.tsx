@@ -1,86 +1,48 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Search, MapPin, Clock, Star, Filter, Navigation as NavIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import Navigation from '@/components/Navigation';
+import { parkingApi } from '@/lib/api-client';
+import { ParkingSpot } from '@/lib/api-client';
+import { BookingModal } from '@/components/BookingModal';
 
 const Parking = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
-  const parkingSpots = [
-    {
-      id: 1,
-      name: "Westlands Shopping Mall",
-      address: "Westlands Road, Nairobi",
-      distance: "0.5 km",
-      availableSpots: 45,
-      totalSpots: 120,
-      pricePerHour: 200,
-      rating: 4.8,
-      features: ["Covered", "Security", "24/7"],
-      walkTime: "2 min"
-    },
-    {
-      id: 2,
-      name: "KICC Parking",
-      address: "City Hall Way, CBD",
-      distance: "1.2 km", 
-      availableSpots: 12,
-      totalSpots: 80,
-      pricePerHour: 150,
-      rating: 4.5,
-      features: ["Outdoor", "Security", "CCTV"],
-      walkTime: "5 min"
-    },
-    {
-      id: 3,
-      name: "Sarit Centre",
-      address: "Karuna Road, Westlands",
-      distance: "0.8 km",
-      availableSpots: 28,
-      totalSpots: 200,
-      pricePerHour: 180,
-      rating: 4.7,
-      features: ["Covered", "EV Charging", "Security"],
-      walkTime: "3 min"
-    },
-    {
-      id: 4,
-      name: "Junction Mall",
-      address: "Ngong Road, Nairobi",
-      distance: "2.1 km",
-      availableSpots: 67,
-      totalSpots: 150,
-      pricePerHour: 120,
-      rating: 4.3,
-      features: ["Covered", "Valet", "24/7"],
-      walkTime: "4 min"
-    },
-    {
-      id: 5,
-      name: "Two Rivers Mall",
-      address: "Limuru Road, Gigiri",
-      distance: "3.5 km",
-      availableSpots: 89,
-      totalSpots: 300,
-      pricePerHour: 100,
-      rating: 4.6,
-      features: ["Covered", "Security", "Food Court"],
-      walkTime: "6 min"
-    }
-  ];
+  const { data: parkingSpots, isLoading, error } = useQuery({
+    queryKey: ['parkingSpots'],
+    queryFn: parkingApi.getAll,
+  });
 
-  const getAvailabilityColor = (available: number, total: number) => {
+  const filteredSpots = parkingSpots?.filter((spot: ParkingSpot) => {
+    const matchesSearch = spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         spot.address.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = selectedFilter === 'all' ||
+                         (selectedFilter === 'available' && spot.availableSpots > 0);
+    return matchesSearch && matchesFilter;
+  }) || [];
+
+  const handleBookSpot = async (spot: ParkingSpot) => {
+    setSelectedSpot(spot);
+    setIsBookingModalOpen(true);
+  };
+
+  const getAvailabilityColor = (available: number, total: number): string => {
     const percentage = (available / total) * 100;
     if (percentage > 50) return 'text-green-600';
     if (percentage > 20) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getAvailabilityBg = (available: number, total: number) => {
+  const getAvailabilityBg = (available: number, total: number): string => {
     const percentage = (available / total) * 100;
     if (percentage > 50) return 'bg-green-100';
     if (percentage > 20) return 'bg-yellow-100';
@@ -257,3 +219,22 @@ const Parking = () => {
 };
 
 export default Parking;
+
+// Add BookingModal component at the end of the file
+const BookingModalComponent = () => {
+  const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+
+  return (
+    <BookingModal
+      spot={selectedSpot || ({} as ParkingSpot)}
+      isOpen={isBookingModalOpen}
+      onClose={() => {
+        setIsBookingModalOpen(false);
+        setSelectedSpot(null);
+      }}
+    />
+  );
+};
+
+export { BookingModalComponent };

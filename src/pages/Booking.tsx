@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Calendar, Clock, MapPin, CreditCard, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,43 +11,42 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { authService } from '@/lib/auth';
 import axios from 'axios';
+import { parkingApi } from '@/lib/api-client';
+import { ParkingSpot } from '@/lib/api-client';
 
 const Booking = () => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     parkingSpotId: 0,
-    startTime: "",
+    startTime: new Date().toISOString(),
+    endTime: new Date().toISOString(),
     durationHours: 0
   });
 
+  const { data: parkingSpots, isLoading: isLoadingSpots, error: spotsError } = useQuery({
+    queryKey: ['parkingSpots'],
+    queryFn: parkingApi.getAll,
+  });
+
+  const handleTimeChange = (type: 'startTime' | 'endTime', time: string) => {
+    const newTime = new Date(time);
+    setFormData(prev => ({
+      ...prev,
+      [type]: newTime.toISOString(),
+      durationHours: type === 'endTime' 
+        ? Math.round((newTime.getTime() - new Date(prev.startTime).getTime()) / (1000 * 60 * 60))
+        : Math.round((new Date(prev.endTime).getTime() - newTime.getTime()) / (1000 * 60 * 60))
+    }));
+  };
+
   const navigate = useNavigate();
 
-  const parkingSpots = [
-    {
-      id: 1,
-      name: "Westlands Shopping Mall",
-      address: "Westlands, Nairobi",
-      availableSpots: 50,
-      totalSpots: 100
-    },
-    {
-      id: 2,
-      name: "KICC Parking",
-      address: "KICC, Nairobi",
-      availableSpots: 30,
-      totalSpots: 50
-    },
-    {
-      id: 3,
-      name: "Sarit Centre",
-      address: "Sarit, Nairobi",
-      availableSpots: 40,
-      totalSpots: 80
-    }
-  ];
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
     try {
       if (!formData.parkingSpotId || !formData.startTime || !formData.endTime) {
         toast.error('Please select parking spot and times');
@@ -54,9 +54,10 @@ const Booking = () => {
       }
 
       const bookingData = {
-        parking_spot_id: formData.parkingSpotId,
-        start_time: formData.startTime,
-        duration_hours: formData.durationHours
+        spotId: formData.parkingSpotId,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        durationHours: formData.durationHours
       };
 
       try {
@@ -93,120 +94,112 @@ const Booking = () => {
       <Navigation />
       <div className="pt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="bg-white shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-parking-navy">
-                Book Parking Spot
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2">
-                      Parking Location
-                    </label>
-                    <select
-                      value={formData.parkingSpotId}
-                      onChange={(e) => {
-                        const spotId = parseInt(e.target.value);
-                        const selectedSpot = parkingSpots.find(spot => spot.id === spotId);
-                        setFormData({ 
-                          ...formData, 
-                          parkingSpotId: spotId,
-                          parkingLocation: selectedSpot?.name || '',
-                          parkingAddress: selectedSpot?.address || ''
-                        });
-                      }}
-                      className="w-full p-3 border rounded-md focus:ring-2 focus:ring-parking-navy focus:border-transparent"
-                    >
-                      <option value="">Select parking spot</option>
-                      {parkingSpots.map(spot => (
-                        <option key={spot.id} value={spot.id}>
-                          {spot.name} - {spot.address}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2">
-                      Vehicle Type
-                    </label>
-                    <select
-                      value={formData.vehicleType}
-                      onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
-                      className="w-full p-3 border rounded-md focus:ring-2 focus:ring-parking-navy focus:border-transparent"
-                    >
-                      <option value="">Select vehicle type</option>
-                      <option value="car">Car</option>
-                      <option value="motorcycle">Motorcycle</option>
-                      <option value="truck">Truck</option>
-                    </select>
-                    <div className="mt-2 text-sm text-gray-600">
-                      This will help us assign the appropriate parking spot
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2">
-                      Start Time
-                    </label>
-                    <Input
-                      type="datetime-local"
-                      value={formData.startTime}
-                      onChange={(e) => {
-                        const startTime = e.target.value;
-                        const endTime = new Date(startTime);
-                        endTime.setHours(endTime.getHours() + 1);
-                        const durationHours = 1; // Simplified to 1 hour for now
-                        setFormData({ 
-                          ...formData, 
-                          startTime: startTime,
-                          endTime: endTime.toISOString().slice(0, 16),
-                          durationHours: durationHours
-                        });
-                      }}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2">
-                      End Time
-                    </label>
-                    {/* End time is automatically calculated based on duration */}
-                    <div className="text-sm text-gray-600">
-                      End time will be automatically calculated based on duration
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="text-sm font-medium text-gray-700 mb-2">
-                    Special Requests
-                  </label>
-                  <textarea
-                    value={formData.specialRequests}
-                    onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
-                    rows={4}
-                    className="w-full p-3 border rounded-md focus:ring-2 focus:ring-parking-navy focus:border-transparent"
-                    placeholder="Any special requests or requirements..."
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    onClick={handleSubmit}
-                    className="bg-parking-navy hover:bg-blue-800 text-white px-8 py-3 rounded-lg"
-                  >
-                    Confirm Booking
-                  </Button>
-                </div>
+          {isLoadingSpots ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-parking-navy"></div>
+            </div>
+          ) : spotsError ? (
+            <div className="text-center text-red-500">
+              Failed to load parking spots. Please try again later.
+            </div>
+          ) : (
+            <>
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-parking-navy mb-2">Book Parking Spot</h1>
+                <p className="text-gray-600">Select your preferred parking spot and time</p>
               </div>
-            </CardContent>
-          </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Parking Spot Selection */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Select Parking Spot</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {parkingSpots?.map((spot) => (
+                        <div key={spot.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-lg">
+                          <input
+                            type="radio"
+                            name="parkingSpot"
+                            value={spot.id}
+                            checked={formData.parkingSpotId === spot.id}
+                            onChange={() => setFormData(prev => ({ ...prev, parkingSpotId: spot.id }))}
+                            className="h-4 w-4 text-parking-navy"
+                          />
+                          <div>
+                            <h3 className="font-semibold">{spot.name}</h3>
+                            <p className="text-gray-600">{spot.address}</p>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <MapPin className="h-4 w-4" />
+                              <span>{spot.availableSpots} spots available</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Time Selection */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Select Time</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="date"
+                            value={new Date(formData.startTime).toISOString().split('T')[0]}
+                            onChange={(e) => handleTimeChange('startTime', e.target.value)}
+                            className="flex-1"
+                          />
+                          <Input
+                            type="time"
+                            value={new Date(formData.startTime).toISOString().split('T')[1].split('.')[0]}
+                            onChange={(e) => handleTimeChange('startTime', e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="date"
+                            value={new Date(formData.endTime).toISOString().split('T')[0]}
+                            onChange={(e) => handleTimeChange('endTime', e.target.value)}
+                            className="flex-1"
+                          />
+                          <Input
+                            type="time"
+                            value={new Date(formData.endTime).toISOString().split('T')[1].split('.')[0]}
+                            onChange={(e) => handleTimeChange('endTime', e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                        <Input
+                          type="text"
+                          value={`${formData.durationHours} hours`}
+                          readOnly
+                          className="bg-gray-50"
+                        />
+                      </div>
+                      <Button type="submit" className="w-full bg-parking-red hover:bg-red-700">
+                        Book Now
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,60 +1,29 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, MapPin, Clock, CreditCard, Filter, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Navigation from '@/components/Navigation';
+import { bookingApi } from '@/lib/api-client';
+import { Booking } from '@/lib/api-client';
 
 const Bookings = () => {
   const [activeTab, setActiveTab] = useState('all');
+  const queryClient = useQueryClient();
 
-  const bookings = [
-    {
-      id: 1,
-      location: "Westlands Shopping Mall",
-      address: "Westlands Road, Nairobi",
-      date: "2024-01-15",
-      time: "14:30 - 17:30",
-      duration: "3 hours",
-      price: "KSh 600",
-      status: "active",
-      paymentMethod: "M-Pesa"
+  const { data: bookings, isLoading, error } = useQuery({
+    queryKey: ['bookings'],
+    queryFn: bookingApi.getAll,
+  });
+
+  const cancelBookingMutation = useMutation({
+    mutationFn: (id: number) => bookingApi.cancel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
-    {
-      id: 2,
-      location: "KICC Parking",
-      address: "City Hall Way, Nairobi",
-      date: "2024-01-14",
-      time: "09:00 - 12:00",
-      duration: "3 hours", 
-      price: "KSh 450",
-      status: "completed",
-      paymentMethod: "Card"
-    },
-    {
-      id: 3,
-      location: "Sarit Centre",
-      address: "Karuna Road, Westlands",
-      date: "2024-01-12",
-      time: "15:15 - 18:00",
-      duration: "2.75 hours",
-      price: "KSh 550",
-      status: "completed",
-      paymentMethod: "M-Pesa"
-    },
-    {
-      id: 4,
-      location: "Junction Mall",
-      address: "Ngong Road, Nairobi",
-      date: "2024-01-18",
-      time: "10:00 - 13:00",
-      duration: "3 hours",
-      price: "KSh 450",
-      status: "upcoming",
-      paymentMethod: "M-Pesa"
-    }
-  ];
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,10 +40,10 @@ const Bookings = () => {
     }
   };
 
-  const filteredBookings = bookings.filter(booking => {
+  const filteredBookings = bookings?.filter((booking: Booking) => {
     if (activeTab === 'all') return true;
     return booking.status === activeTab;
-  });
+  }) || []; // Add fallback empty array
 
   return (
     <div className="min-h-screen bg-gray-50">

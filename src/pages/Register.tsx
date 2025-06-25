@@ -35,7 +35,7 @@ const Register = () => {
           email: formData.email,
           phone: formData.phone,
           password: formData.password,
-          confirm_password: formData.confirmPassword // ✅ This line was missing
+          confirm_password: formData.confirmPassword,
         })
       });
   

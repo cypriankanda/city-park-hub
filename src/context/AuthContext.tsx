@@ -33,20 +33,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = async (email: string, password: string, rememberMe: boolean) => {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, remember_me: rememberMe }),
-    });
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, remember_me: rememberMe }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Login failed');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Login failed');
+      }
+
+      const data = await response.json();
+      authService.setToken(data.token);
+      setToken(data.token);
+      
+      // Decode token to get user data
+      const decoded = jwtDecode(data.token);
+      setUser(decoded);
+
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    authService.setToken(data.token);
-    setToken(data.token);
   };
 
   const logout = () => {
