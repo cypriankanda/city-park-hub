@@ -1,12 +1,34 @@
 import axios from 'axios';
-import { API_BASE_URL } from './api';
 
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL as string,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: true,
+  timeout: 10000,
 });
+
+// Add error interceptor
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Server responded with an error
+      console.error('Server Error:', error.response.data);
+      throw error;
+    } else if (error.request) {
+      // Request was made but no response
+      console.error('Network Error:', error.message);
+      throw new Error('Network error occurred. Please check your internet connection.');
+    } else {
+      // Something happened in setting up the request
+      console.error('Request Error:', error.message);
+      throw new Error('An error occurred while processing your request.');
+    }
+  }
+);
 
 // Add auth token to requests
 apiClient.interceptors.request.use((config) => {
@@ -49,13 +71,21 @@ export const parkingApi = {
 
 export const bookingApi = {
   create: (data: {
-    spotId: number;
-    startTime: string;
-    endTime: string;
-    durationHours: number;
-  }) => apiClient.post<Booking>('/api/bookings', data).then(res => res.data),
-  getAll: () => apiClient.get<Booking[]>('/api/bookings').then(res => res.data),
-  update: (id: number, data: Partial<Booking>) => apiClient.put<Booking>(`/api/bookings/${id}`, data).then(res => res.data),
+    parking_spot_id: number;
+    start_time: Date;
+    end_time: Date;
+    duration_hours: number;
+  }) => {
+    // Convert dates to ISO strings before sending
+    const requestData = {
+      ...data,
+      start_time: data.start_time.toISOString(),
+      end_time: data.end_time.toISOString()
+    };
+    return apiClient.post('/api/bookings', requestData).then(res => res.data);
+  },
+  getAll: () => apiClient.get('/api/bookings').then(res => res.data),
+  update: (id: number, data: Partial<Booking>) => apiClient.put(`/api/bookings/${id}`, data).then(res => res.data),
   cancel: (id: number) => apiClient.delete(`/api/bookings/${id}`).then(res => res.data),
 };
 

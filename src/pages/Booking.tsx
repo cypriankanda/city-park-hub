@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, Clock, MapPin, CreditCard, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,13 @@ import { api } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { authService } from '@/lib/auth';
-import axios from 'axios';
-import { parkingApi } from '@/lib/api-client';
+import { parkingApi, bookingApi } from '@/lib/api-client';
 import { ParkingSpot } from '@/lib/api-client';
 
-const Booking = () => {
+export default function Booking() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     parkingSpotId: 0,
     startTime: new Date().toISOString(),
@@ -39,46 +40,38 @@ const Booking = () => {
     }));
   };
 
-  const navigate = useNavigate();
-
-
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
+      setIsLoading(true);
       if (!formData.parkingSpotId || !formData.startTime || !formData.endTime) {
         toast.error('Please select parking spot and times');
         return;
       }
 
       const bookingData = {
-        spotId: formData.parkingSpotId,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        durationHours: formData.durationHours
+        parking_spot_id: formData.parkingSpotId,
+        start_time: new Date(formData.startTime),
+        end_time: new Date(formData.endTime),
+        duration_hours: formData.durationHours
       };
 
       try {
-        const response = await axios.post(api.bookings.create, bookingData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authService.getToken()}`
-          }
-        });
+        await bookingApi.create(bookingData);
 
-        if (response.status === 200) {
-          toast.success('Booking successful!');
-          navigate('/dashboard');
-        } else {
-          throw new Error('Booking failed');
-        }
+        toast.success('Booking successful!');
+        navigate('/dashboard');
       } catch (error: any) {
         console.error('Booking error:', error.response?.data || error);
         if (error.response?.data?.detail) {
           const validationErrors = error.response.data.detail.map((err: any) => `${err.loc.join('.')}: ${err.msg}`).join(', ');
           toast.error(validationErrors);
+        } else if (error.message.includes('Network Error')) {
+          toast.error('Network error. Please check your internet connection.');
         } else {
           toast.error('Failed to create booking');
         }
@@ -86,6 +79,8 @@ const Booking = () => {
     } catch (error: any) {
       console.error('Error:', error);
       toast.error('An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -192,7 +187,7 @@ const Booking = () => {
                         />
                       </div>
                       <Button type="submit" className="w-full bg-parking-red hover:bg-red-700">
-                        Book Now
+                        {isLoading ? 'Booking...' : 'Book Now'}
                       </Button>
                     </form>
                   </CardContent>
@@ -204,6 +199,4 @@ const Booking = () => {
       </div>
     </div>
   );
-};
-
-export default Booking;
+}

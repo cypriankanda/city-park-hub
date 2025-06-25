@@ -14,7 +14,12 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "https://city-park-hub-1rf7.onrender.com"],
+    allow_origins=[
+        "http://localhost:8080",  # Local development
+        "https://city-park-hub-1rf7.onrender.com",  # Backend
+        "https://*.vercel.app",  # Vercel deployment
+        "https://*.vercel.live"   # Vercel preview deployments
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
