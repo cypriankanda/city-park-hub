@@ -93,10 +93,13 @@ def list_bookings(status: str = "all", search: str = "", current_user: schemas.U
 @app.post("/api/bookings")
 def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        print(f"Received booking request for spot {data.parking_spot_id}")
-        print(f"Start time: {data.start_time}, End time: {data.end_time}")
+        print(f"\n=== Booking Request ===")
+        print(f"Spot ID: {data.parking_spot_id}")
+        print(f"Start time: {data.start_time}")
+        print(f"End time: {data.end_time}")
         print(f"Duration: {data.duration_hours} hours")
-        print(f"Current user: {current_user.id}")
+        print(f"User ID: {current_user.id}")
+        print(f"=== End Request ===\n")
         
         # Validate parking spot exists and is available
         spot = db.query(models.ParkingSpace).filter_by(id=data.parking_spot_id).first()
@@ -104,6 +107,63 @@ def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.Use
             raise HTTPException(status_code=404, detail={"error": "Parking spot not found", "spot_id": data.parking_spot_id})
         if spot.available_spots <= 0:
             raise HTTPException(status_code=400, detail={"error": "No available spots", "available": spot.available_spots})
+        
+        # Validate time range
+        if data.start_time >= data.end_time:
+            raise HTTPException(status_code=400, detail={"error": "Start time must be before end time", 
+                                                       "start_time": data.start_time.isoformat(), 
+                                                       "end_time": data.end_time.isoformat()})
+        
+        # Validate duration
+        if data.duration_hours <= 0:
+            raise HTTPException(status_code=400, detail={"error": "Duration must be greater than 0", 
+                                                       "duration": data.duration_hours})
+        
+        # Create booking
+        try:
+            booking = models.Booking(
+                driver_id=current_user.id,
+                parking_space_id=data.parking_spot_id,
+                start_time=data.start_time,
+                end_time=data.end_time,
+                duration_hours=data.duration_hours,
+                payment_method="M-Pesa",  # Placeholder
+                status="pending"
+            )
+            
+            # Update spot availability
+            spot.available_spots -= 1
+            db.add(booking)
+            db.commit()
+            db.refresh(booking)
+            
+            return {
+                "booking": {
+                    "id": booking.id,
+                    "parking_spot_id": booking.parking_space_id,
+                    "start_time": booking.start_time.isoformat(),
+                    "end_time": booking.end_time.isoformat(),
+                    "duration_hours": booking.duration_hours,
+                    "status": booking.status
+                }
+            }
+        except Exception as e:
+            db.rollback()
+            print(f"\n=== Database Error ===")
+            print(f"Error: {str(e)}")
+            print(f"=== End Error ===\n")
+            raise HTTPException(status_code=500, detail={"error": "Database error", "message": str(e)})
+    except HTTPException as http_err:
+        print(f"\n=== HTTP Error ===")
+        print(f"Error: {http_err.detail}")
+        print(f"=== End Error ===\n")
+        raise http_err
+    except Exception as e:
+        print(f"\n=== Unexpected Error ===")
+        print(f"Error: {str(e)}")
+        print(f"=== End Error ===\n")
+        db.rollback()
+        raise HTTPException(status_code=500, detail={"error": "Server error", "message": str(e)})
 
         # Validate time range
         if data.start_time >= data.end_time:

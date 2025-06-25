@@ -11,6 +11,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('token')}`
   },
   withCredentials: true,
   timeout: 10000
@@ -94,6 +95,7 @@ export const bookingApi = {
     console.log('Sending booking request to:', `${endpoint}?local_kw=true`);
     console.log('Request data:', requestData);
     
+    console.log('Final request URL:', `${PROXY_URL}${endpoint}?local_kw=true`);
     return apiClient.post(`${endpoint}?local_kw=true`, requestData)
       .then(response => {
         console.log('Booking response:', response.data);
