@@ -78,11 +78,12 @@ export const bookingApi = {
   }) => {
     // Convert dates to ISO strings before sending
     const requestData = {
-      ...data,
+      parking_spot_id: data.parking_spot_id,
       start_time: data.start_time.toISOString(),
-      end_time: data.end_time.toISOString()
+      end_time: data.end_time.toISOString(),
+      duration_hours: data.duration_hours
     };
-    return apiClient.post('/api/bookings', requestData).then(res => res.data);
+    return apiClient.post('/api/bookings?local_kw=true', requestData).then(res => res.data);
   },
   getAll: () => apiClient.get('/api/bookings').then(res => res.data),
   update: (id: number, data: Partial<Booking>) => apiClient.put(`/api/bookings/${id}`, data).then(res => res.data),

@@ -21,9 +21,11 @@ app.add_middleware(
         "https://*.vercel.live"   # Vercel preview deployments
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["Authorization"],
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+    expose_headers=["Authorization", "Content-Type", "Accept"],  # Expose necessary headers
+    allow_methods=["*"],  # Explicitly allow all methods
+    max_age=86400  # Cache preflight requests for 24 hours
 )
 
 # Dependency to get DB session
@@ -79,7 +81,10 @@ def list_bookings(status: str = "all", search: str = "", current_user: schemas.U
 
 @app.post("/api/bookings")
 def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return crud.create_booking(db, current_user, data)
+    try:
+        return crud.create_booking(db, current_user, data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.put("/api/bookings/{booking_id}")
 def update_booking(booking_id: int, data: schemas.UpdateBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
