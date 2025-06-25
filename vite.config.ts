@@ -13,11 +13,7 @@ export default defineConfig(({ mode }) => ({
         target: 'https://city-park-hub-1rf7.onrender.com',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => {
-          // Remove the /api prefix and add it back to the target URL
-          const newPath = path.replace(/^\/api/, '');
-          return `/api${newPath}`;
-        }
+        rewrite: (path) => path
       }
     }
   },
