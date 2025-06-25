@@ -23,8 +23,15 @@ app.add_middleware(
         "https://*.vercel.live"
     ],
     allow_credentials=True,
-    allow_methods=["*"],  # only defined once
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Methods",
+        "Access-Control-Allow-Headers"
+    ],
     expose_headers=["Authorization", "Content-Type", "Accept"],
     max_age=86400
 )
