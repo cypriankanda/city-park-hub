@@ -4,28 +4,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from backend import models, schemas, crud  # ✅ assuming your backend folder is named `backend`
+from backend import models, schemas, crud
 from .database import SessionLocal, engine
 from .auth import get_current_user
 
+# Initialize database
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# CORS Middleware Setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:8080",  # Local development
-        "https://city-park-hub-1rf7.onrender.com",  # Backend
-        "https://*.vercel.app",  # Vercel deployment
-        "https://*.vercel.live"   # Vercel preview deployments
+        "http://localhost:8080",
+        "https://city-park-hub-1rf7.onrender.com",
+        "https://*.vercel.app",
+        "https://*.vercel.live"
     ],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["Authorization", "Content-Type", "Accept"],  # Expose necessary headers
-    allow_methods=["*"],  # Explicitly allow all methods
-    max_age=86400  # Cache preflight requests for 24 hours
+    allow_methods=["*"],  # only defined once
+    allow_headers=["*"],
+    expose_headers=["Authorization", "Content-Type", "Accept"],
+    max_age=86400
 )
 
 # Dependency to get DB session
@@ -36,7 +37,8 @@ def get_db():
     finally:
         db.close()
 
-# Authentication Routes
+# -------------------- AUTH ROUTES --------------------
+
 @app.get("/")
 def root():
     return {"message": "ParkSmart API is running"}
@@ -65,7 +67,8 @@ def get_me(current_user: schemas.User = Depends(get_current_user)):
 def logout():
     return {"message": "Logged out successfully"}
 
-# Dashboard Routes
+# -------------------- DASHBOARD ROUTES --------------------
+
 @app.get("/api/dashboard/stats")
 def get_stats(current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return crud.get_user_dashboard_stats(db, current_user)
@@ -74,7 +77,8 @@ def get_stats(current_user: schemas.User = Depends(get_current_user), db: Sessio
 def recent_bookings(current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return crud.get_recent_bookings(db, current_user)
 
-# Bookings Routes
+# -------------------- BOOKINGS ROUTES --------------------
+
 @app.get("/api/bookings")
 def list_bookings(status: str = "all", search: str = "", current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return crud.get_user_bookings(db, current_user, status, search)
@@ -82,38 +86,30 @@ def list_bookings(status: str = "all", search: str = "", current_user: schemas.U
 @app.post("/api/bookings")
 def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        # Validate parking spot exists and is available
         spot = db.query(models.ParkingSpace).filter_by(id=data.parking_spot_id).first()
         if not spot:
             raise HTTPException(status_code=404, detail="Parking spot not found")
         if spot.available_spots <= 0:
             raise HTTPException(status_code=400, detail="No available spots")
-
-        # Validate time range
         if data.start_time >= data.end_time:
             raise HTTPException(status_code=400, detail="Start time must be before end time")
-        
-        # Validate duration
         if data.duration_hours <= 0:
             raise HTTPException(status_code=400, detail="Duration must be greater than 0")
 
-        # Create booking
         booking = models.Booking(
             driver_id=current_user.id,
             parking_space_id=data.parking_spot_id,
             start_time=data.start_time,
             end_time=data.end_time,
             duration_hours=data.duration_hours,
-            payment_method="M-Pesa",  # Placeholder
+            payment_method="M-Pesa",
             status="pending"
         )
-        
-        # Update spot availability
         spot.available_spots -= 1
         db.add(booking)
         db.commit()
         db.refresh(booking)
-        
+
         return {
             "booking": {
                 "id": booking.id,
@@ -124,6 +120,7 @@ def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.Use
                 "status": booking.status
             }
         }
+
     except HTTPException:
         raise
     except Exception as e:
@@ -142,7 +139,8 @@ def delete_booking(booking_id: int, current_user: schemas.User = Depends(get_cur
 def extend_booking(booking_id: int, data: schemas.ExtendBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return crud.extend_booking(db, current_user, booking_id, data)
 
-# Parking Routes
+# -------------------- PARKING ROUTES --------------------
+
 @app.get("/api/parking/spots")
 def list_parking_spots(lat: float = None, lng: float = None, radius: float = 5, search: str = "", filter: str = "available", db: Session = Depends(get_db)):
     return crud.get_parking_spots(db, lat, lng, radius, search, filter)
@@ -155,7 +153,8 @@ def get_parking_spot(spot_id: int, db: Session = Depends(get_db)):
 def book_spot(spot_id: int, data: schemas.BookSpotRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return crud.book_parking_spot(db, current_user, spot_id, data)
 
-# Admin Routes
+# -------------------- ADMIN ROUTES --------------------
+
 @app.get("/api/admin/stats")
 def admin_stats(current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return crud.get_admin_stats(db)
