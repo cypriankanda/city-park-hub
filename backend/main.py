@@ -92,7 +92,7 @@ def list_bookings(status: str = "all", search: str = "", current_user: schemas.U
 @app.post("/api/bookings")
 def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        spot = db.query(models.ParkingSpace).filter_by(id=data.parking_spot_id).first()
+        spot = db.query(models.ParkingSpace).filter_by(id=data.parking_space_id).first()
         if not spot:
             raise HTTPException(status_code=404, detail="Parking spot not found")
         if spot.available_spots <= 0:
@@ -104,12 +104,12 @@ def create_booking(data: schemas.CreateBookingRequest, current_user: schemas.Use
 
         booking = models.Booking(
             driver_id=current_user.id,
-            parking_space_id=data.parking_spot_id,
+            parking_space_id=data.parking_space_id,
             start_time=data.start_time,
             end_time=data.end_time,
             duration_hours=data.duration_hours,
-            payment_method="M-Pesa",
-            status="pending"
+            status="active",
+            payment_method="card"
         )
         spot.available_spots -= 1
         db.add(booking)
