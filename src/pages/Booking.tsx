@@ -26,7 +26,7 @@ export default function Booking() {
 
   const { data: parkingSpots, isLoading: isLoadingSpots, error: spotsError } = useQuery({
     queryKey: ['parkingSpots'],
-    queryFn: parkingApi.getAll,
+    queryFn: () => parkingApi.getAll(),
   });
 
   const handleTimeChange = (type: 'startTime' | 'endTime', time: string) => {
@@ -54,27 +54,68 @@ export default function Booking() {
       }
 
       const bookingData = {
-        parking_spot_id: formData.parkingSpotId,
+        parking_spot_id: Number(formData.parkingSpotId),
         start_time: new Date(formData.startTime),
         end_time: new Date(formData.endTime),
-        duration_hours: formData.durationHours
+        duration_hours: Number(formData.durationHours)
       } as const;
 
+      console.log('Booking data:', {
+        parking_spot_id: bookingData.parking_spot_id,
+        start_time: bookingData.start_time.toISOString(),
+        end_time: bookingData.end_time.toISOString(),
+        duration_hours: bookingData.duration_hours
+      });
+
       try {
-        await bookingApi.create(bookingData);
+        const isDev = import.meta.env.DEV;
+        const endpoint = isDev ? '/api/bookings' : '/api/bookings';
+        await bookingApi.create(bookingData, endpoint);
 
         toast.success('Booking successful!');
         navigate('/dashboard');
       } catch (error: any) {
-        console.error('Booking error:', error.response?.data || error);
-        if (error.response?.data?.detail) {
-          const validationErrors = error.response.data.detail.map((err: any) => `${err.loc.join('.')}: ${err.msg}`).join(', ');
-          toast.error(validationErrors);
+        console.error('Booking error:', error);
+        let errorMessage = 'Failed to create booking';
+        
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+          
+          if (error.response.data?.detail) {
+            if (typeof error.response.data.detail === 'object' && !Array.isArray(error.response.data.detail)) {
+              const errorDetail = error.response.data.detail;
+              if (errorDetail.error) {
+                errorMessage = errorDetail.error;
+                if (errorDetail.spot_id) {
+                  errorMessage += ` (Spot ID: ${errorDetail.spot_id})`;
+                }
+                if (errorDetail.available) {
+                  errorMessage += ` (Available spots: ${errorDetail.available})`;
+                }
+                if (errorDetail.start_time || errorDetail.end_time) {
+                  errorMessage += ` (Start: ${errorDetail.start_time}, End: ${errorDetail.end_time})`;
+                }
+                if (errorDetail.duration) {
+                  errorMessage += ` (Duration: ${errorDetail.duration} hours)`;
+                }
+              }
+            } else if (Array.isArray(error.response.data.detail)) {
+              const validationErrors = error.response.data.detail.map((err: any) => `${err.loc.join('.')}: ${err.msg}`).join(', ');
+              errorMessage = validationErrors;
+            } else {
+              errorMessage = error.response.data.detail;
+            }
+          } else if (error.response.data?.error) {
+            errorMessage = error.response.data.error;
+          } else {
+            errorMessage = 'Server error occurred. Please try again later.';
+          }
         } else if (error.message.includes('Network Error')) {
-          toast.error('Network error. Please check your internet connection.');
-        } else {
-          toast.error('Failed to create booking');
+          errorMessage = 'Network error. Please check your internet connection.';
         }
+        
+        toast.error(errorMessage);
       }
     } catch (error: any) {
       console.error('Error:', error);

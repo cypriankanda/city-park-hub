@@ -1,18 +1,19 @@
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+// Use proxy for local development
+const isDev = import.meta.env.DEV;
+const PROXY_URL = isDev ? '' : API_BASE_URL;
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL as string,
+  baseURL: PROXY_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
   },
   withCredentials: true,
-  timeout: 10000,
-  xsrfCookieName: 'csrftoken',
-  xsrfHeaderName: 'X-CSRFToken'
+  timeout: 10000
 });
 
 // Add error interceptor
@@ -80,19 +81,29 @@ export const bookingApi = {
     start_time: Date;
     end_time: Date;
     duration_hours: number;
-  }) => {
+  }, endpoint: string = '/api/bookings') => {
     // Convert dates to ISO strings before sending
     const requestData = {
       parking_spot_id: data.parking_spot_id,
-      start_time: data.start_time.toISOString(),
-      end_time: data.end_time.toISOString(),
-      duration_hours: data.duration_hours
+      start_time: new Date(data.start_time).toISOString(),
+      end_time: new Date(data.end_time).toISOString(),
+      duration_hours: Number(data.duration_hours)
     };
+
+    // Add proper error handling
+    console.log('Sending booking request to:', `${endpoint}?local_kw=true`);
+    console.log('Request data:', requestData);
     
-    return apiClient.post('/api/bookings?local_kw=true', requestData)
-      .then(res => res.data)
+    return apiClient.post(`${endpoint}?local_kw=true`, requestData)
+      .then(response => {
+        console.log('Booking response:', response.data);
+        return response.data;
+      })
       .catch(error => {
-        console.error('Booking API Error:', error.response?.data || error);
+        console.error('Booking API Error:', error);
+        if (error.response) {
+          console.error('Response data:', error.response.data);
+        }
         throw error;
       });
   },
