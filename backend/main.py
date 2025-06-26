@@ -28,7 +28,8 @@ app.add_middleware(
         "http://127.0.0.1:8080",
         "https://city-park-hub-1rf7.onrender.com",
         "https://*.vercel.app",
-        "https://*.vercel.live"
+        "https://*.vercel.live",
+        "http://127.0.0.1:5173"  # Vite development server
     ],
     allow_credentials=True,
     allow_methods=["*"],
