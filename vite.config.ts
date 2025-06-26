@@ -1,33 +1,45 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { loadEnv } from 'vite';
+import { createProxyMiddleware } from 'http-proxy-middleware';
+import path from 'path';
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'https://city-park-hub-1rf7.onrender.com',
-        changeOrigin: true,
-        secure: true,
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
-        },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd());
+
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
       },
     },
-  },
-})
+    server: {
+      port: 8080,
+      proxy: {
+        '/api': {
+          target: env.VITE_API_BASE_URL,
+          changeOrigin: true,
+          secure: false,
+          ws: true,
+          onError: (err: Error, config: any) => {
+            console.error('Proxy error:', err);
+          },
+          configure: (proxy: any) => {
+            proxy.on('error', (err: Error, req: any, res: any) => {
+              console.error('Proxy error:', err);
+            });
+            proxy.on('proxyRes', (proxyRes: any) => {
+              proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+              proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+              proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With';
+              proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+            });
+          },
+          rewrite: (path: string) => path.replace(/^\/api/, '')
+        }
+      }
+    }
+  };
+});
