@@ -20,13 +20,14 @@ import { CalendarIcon } from "lucide-react";
 import { format, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { bookingApi } from '@/lib/api-client';
+import { parkingApi } from '../lib/api-client';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { ParkingSpot } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 const formSchema = z.object({
   startTime: z.string().min(1, {
@@ -57,8 +58,15 @@ interface BookingModalProps {
   onSuccess?: () => void;
 }
 
-export function BookingModal({ spot, isOpen, onClose, localKw, onSuccess }: BookingModalProps) {
+export default function BookingModal({
+  spot,
+  isOpen,
+  onClose,
+  localKw,
+  onSuccess
+}: BookingModalProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -109,29 +117,43 @@ export function BookingModal({ spot, isOpen, onClose, localKw, onSuccess }: Book
       ));
 
       const bookingData = {
-        parking_space_id: spot.id,
-        start_time: startUTC,
-        end_time: endUTC,
+        start_time: startUTC.toISOString(),
         duration_hours: Math.round((endUTC.getTime() - startUTC.getTime()) / (60 * 60 * 1000)),
         local_kw: localKw
       };
 
       console.log('Booking data:', {
-        parking_space_id: bookingData.parking_space_id,
-        start_time: startUTC.toISOString(),
-        end_time: endUTC.toISOString(),
+        start_time: bookingData.start_time,
         duration_hours: bookingData.duration_hours,
         local_kw: bookingData.local_kw
       });
 
-      const response = await bookingApi.create(bookingData);
-      console.log('Booking response:', response);
-      
-      // Invalidate and refetch bookings
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      
-      onClose();
-      onSuccess?.();
+      try {
+        const response = await parkingApi.bookSpot(spot.id, bookingData);
+        console.log('Booking response:', response);
+        
+        // Invalidate and refetch bookings
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        
+        onClose();
+        onSuccess?.();
+      } catch (error: any) {
+        console.error('Booking error:', {
+          message: error.message,
+          stack: error.stack,
+          response: error.response?.data
+        });
+        
+        if (error.message === 'Not authenticated') {
+          toast.error('Please log in first');
+          navigate('/login');
+        } else {
+          setError(error.message || 'Failed to create booking');
+          toast.error(error.message || 'Failed to create booking');
+        }
+      } finally {
+        setIsLoading(false);
+      }
     } catch (error: any) {
       console.error('Booking error:', {
         message: error.message,
