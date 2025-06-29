@@ -1,60 +1,25 @@
 # backend/main.py
-import logging
-from fastapi import FastAPI, Depends, HTTPException, APIRouter
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
+from backend.utils.error_handler import handle_exceptions
 
-from backend import crud
-from backend.models import Driver, ParkingSpace, Booking, Base
+from backend import crud, models
 from backend.database import SessionLocal, engine
 from backend.auth import get_current_user
-from backend import schemas
-from backend.models import Driver, ParkingSpace, Booking, Base
-from backend.database import SessionLocal, engine
-from backend.auth import get_current_user
-from backend.schemas import Token
-
-# Initialize FastAPI app
-app = FastAPI()
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Initialize database tables
-Base.metadata.create_all(bind=engine)
+from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest, Token
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI()
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app = FastAPI(
+    title="City Park Hub API",
+    version="1.0.0",
+    description="API for City Park Hub parking management system"
 )
-
-# Test database connection
-try:
-    with engine.connect() as connection:
-        logger.info("Successfully connected to database")
-except Exception as e:
-    logger.error(f"Failed to connect to database: {str(e)}")
-
-# Create FastAPI app
-app = FastAPI(title="City Park Hub API", version="1.0.0")
 
 # CORS Middleware Setup
 app.add_middleware(
@@ -90,7 +55,8 @@ def root():
     return {"message": "ParkSmart API is running"}
 
 @app.post("/api/auth/login", response_model=schemas.Token)
-def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
+@handle_exceptions
+async def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
     try:
         logger.info(f"Login attempt for email: {data.email}")
         result = crud.login_user(db, data)
@@ -104,18 +70,12 @@ def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/auth/register")
+@handle_exceptions
 async def register(data: schemas.RegisterRequest, db: Session = Depends(get_db)):
-    try:
-        logger.info(f"Registration attempt for email: {data.email}")
-        result = crud.register_user(db, data)
-        logger.info("Registration successful")
-        return result
-    except HTTPException as e:
-        logger.error(f"Registration failed: {str(e.detail)}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error during registration: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+    logger.info(f"Registration attempt for email: {data.email}")
+    result = crud.register_user(db, data)
+    logger.info("Registration successful")
+    return result
 
 @app.post("/api/auth/reset-password")
 def reset_password(data: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):

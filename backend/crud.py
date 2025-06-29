@@ -1,5 +1,4 @@
 # backend/crud.py
-import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime, timedelta
@@ -10,7 +9,6 @@ from sqlalchemy import or_
 from typing import Optional
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ------------------ AUTH ------------------
@@ -31,16 +29,26 @@ def register_user(db: Session, data: RegisterRequest):
     db.commit()
     db.refresh(new_user)
 
-    token = auth.create_access_token({"sub": new_user.email})
+    token = create_access_token({"sub": new_user.email})
     return {"token": token, "user": new_user, "expires_in": 3600}
 
 def login_user(db: Session, data: LoginRequest):
-    user = db.query(models.Driver).filter_by(email=data.email).first()
-    if not user or not auth.verify_password(data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    try:
+        user = db.query(models.Driver).filter_by(email=data.email).first()
+        if not user:
+            logger.info(f"Login failed: User not found for email {data.email}")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        if not verify_password(data.password, user.hashed_password):
+            logger.info(f"Login failed: Invalid password for user {user.id}")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = auth.create_access_token({"sub": user.email})
-    return {"token": token, "user": user, "expires_in": 3600}
+        token = create_access_token({"sub": user.email})
+        logger.info(f"Login successful for user {user.id}")
+        return {"token": token, "user": user, "expires_in": 3600}
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 def send_reset_email(db: Session, data: ResetPasswordRequest):
     # Stubbed for now (implement email later)

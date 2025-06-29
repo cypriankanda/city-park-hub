@@ -26,7 +26,7 @@ try:
         logger.info("Successfully connected to database")
 except Exception as e:
     logger.error(f"Failed to connect to database: {str(e)}")
-    raise
+    logger.warning("Continuing with application startup despite database connection failure")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
