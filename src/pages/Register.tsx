@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { apiClient } from '@/lib/api-client';
+import { endpoints } from '@/lib/api';
 import { Car, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,35 +27,15 @@ const Register = () => {
     }
   
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          full_name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          confirm_password: formData.confirmPassword,
-          remember_me: true
-        })
+      await apiClient.post(endpoints.auth.register, {
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        confirm_password: formData.confirmPassword,
+        remember_me: true
       });
-  
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Registration error:', error);
-        const errorMsg =
-          error.detail ||
-          error.message ||
-          error.error ||
-          (typeof error === "string" ? error : JSON.stringify(error, null, 2));
-        alert(`Registration failed: ${errorMsg}`);
-        return;
-      }
-  
+
       alert("Account created successfully!");
     } catch (err) {
       console.error("Registration error:", err);
