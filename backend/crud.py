@@ -35,7 +35,7 @@ def register_user(db: Session, data: RegisterRequest):
     db.refresh(new_user)
 
     token = create_access_token({"sub": new_user.email, "user": schemas.User.from_orm(new_user).model_dump()})
-    return {"token": token, "user": new_user, "expires_in": 3600}
+    return {**token.model_dump(), "user": new_user}
 
 def login_user(db: Session, data: LoginRequest):
     try:
@@ -50,7 +50,7 @@ def login_user(db: Session, data: LoginRequest):
 
         token = create_access_token({"sub": user.email, "user": schemas.User.from_orm(user).model_dump()})
         logger.info(f"Login successful for user {user.id}")
-        return {"token": token, "user": user, "expires_in": 3600}
+        return {**token.model_dump(), "user": user}
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
         raise
