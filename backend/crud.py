@@ -3,8 +3,8 @@ import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime, timedelta
+from backend import models
 from backend.schemas import RegisterRequest, LoginRequest, ResetPasswordRequest, VerifyResetRequest, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest
-from backend.models import Driver, Vehicle, ParkingSpace
 from backend.auth import get_password_hash, verify_password, create_access_token
 from sqlalchemy import or_
 from typing import Optional
@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 def register_user(db: Session, data: RegisterRequest):
     if data.password != data.confirm_password:
         raise HTTPException(status_code=400, detail="Passwords do not match")
-    if db.query(Driver).filter_by(email=data.email).first():
+    if db.query(models.Driver).filter_by(email=data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
     hashed_pw = get_password_hash(data.password)
-    new_user = Driver(
+    new_user = models.Driver(
         full_name=data.full_name,
         email=data.email,
         phone=data.phone,
