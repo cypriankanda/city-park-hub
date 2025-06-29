@@ -1,9 +1,9 @@
 import axios from 'axios';
+import { API_BASE_URL } from './api';
 
-// Dynamic base URL depending on environment
-const API_BASE_URL = 'https://city-park-hub-1rf7.onrender.com';
 
 // Create Axios client with proxy URL
+console.log('API_BASE_URL:', API_BASE_URL);
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {

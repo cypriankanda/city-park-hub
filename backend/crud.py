@@ -34,7 +34,7 @@ def register_user(db: Session, data: RegisterRequest):
     db.commit()
     db.refresh(new_user)
 
-    token = create_access_token({"sub": new_user.email})
+    token = create_access_token({"sub": new_user.email, "user": new_user})
     return {"token": token, "user": new_user, "expires_in": 3600}
 
 def login_user(db: Session, data: LoginRequest):
@@ -48,7 +48,7 @@ def login_user(db: Session, data: LoginRequest):
             logger.info(f"Login failed: Invalid password for user {user.id}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        token = create_access_token({"sub": user.email})
+        token = create_access_token({"sub": user.email, "user": user})
         logger.info(f"Login successful for user {user.id}")
         return {"token": token, "user": user, "expires_in": 3600}
     except Exception as e:

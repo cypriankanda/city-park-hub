@@ -1,6 +1,5 @@
 
-import axios from 'axios';
-import { API_BASE_URL } from './api';
+import { apiClient } from './api-client';
 
 export interface LoginRequest {
   email: string;
@@ -18,16 +17,8 @@ export interface LoginResponse {
   };
 }
 
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  withCredentials: true,
-});
-
-axiosInstance.interceptors.request.use(
+// Attach token to every request
+apiClient.interceptors.request.use(
   (config) => {
     const token = authService.getToken();
     if (token) {
@@ -40,14 +31,30 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+export interface RegisterRequest {
+  full_name: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirm_password: string;
+}
+
 export const authService = {
+  register: async (data: RegisterRequest): Promise<void> => {
+    try {
+      await apiClient.post('/api/auth/register', data);
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw new Error('Registration failed');
+    }
+  },
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     try {
-      const response = await axiosInstance.post('/api/auth/login', data);
-      const { access_token, user } = response.data;
+      const { data: res } = await apiClient.post('/api/auth/login', data);
+      const { access_token, user } = res;
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(user));
-      return response.data;
+      return res;
     } catch (error) {
       console.error('Login error:', error);
       throw new Error('Login failed');
