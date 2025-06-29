@@ -34,7 +34,7 @@ def register_user(db: Session, data: RegisterRequest):
     db.commit()
     db.refresh(new_user)
 
-    token = create_access_token({"sub": new_user.email, "user": new_user})
+    token = create_access_token({"sub": new_user.email, "user": schemas.User.from_orm(new_user).model_dump()})
     return {"token": token, "user": new_user, "expires_in": 3600}
 
 def login_user(db: Session, data: LoginRequest):
@@ -48,12 +48,12 @@ def login_user(db: Session, data: LoginRequest):
             logger.info(f"Login failed: Invalid password for user {user.id}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        token = create_access_token({"sub": user.email, "user": user})
+        token = create_access_token({"sub": user.email, "user": schemas.User.from_orm(user).model_dump()})
         logger.info(f"Login successful for user {user.id}")
         return {"token": token, "user": user, "expires_in": 3600}
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise
 
 def send_reset_email(db: Session, data: ResetPasswordRequest):
     # Stubbed for now (implement email later)
