@@ -10,6 +10,7 @@ from backend import crud, models
 from backend.database import SessionLocal, engine
 from backend.auth import get_current_user
 from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest, Token
+from backend import schemas  # Import module alias for type annotations/decorators
 
 # Configure logging
 logging.basicConfig(
