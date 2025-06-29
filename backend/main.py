@@ -13,6 +13,7 @@ from backend import schemas
 from backend.models import Driver, ParkingSpace, Booking, Base
 from backend.database import SessionLocal, engine
 from backend.auth import get_current_user
+from backend.schemas import Token
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -88,7 +89,7 @@ def get_db():
 def root():
     return {"message": "ParkSmart API is running"}
 
-@app.post("/api/auth/login", response_model=Token)
+@app.post("/api/auth/login", response_model=schemas.Token)
 def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
     try:
         logger.info(f"Login attempt for email: {data.email}")
