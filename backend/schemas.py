@@ -24,7 +24,8 @@ class VerifyResetRequest(BaseModel):
     new_password: str
 
 class Token(BaseModel):
-    token: str
+    access_token: str
+    token_type: str
     user: 'User'
     expires_in: int
 

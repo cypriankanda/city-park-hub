@@ -61,9 +61,9 @@ def get_db():
 def root():
     return {"message": "ParkSmart API is running"}
 
-@app.post("/api/auth/login", response_model=schemas.Token)
+@app.post("/api/auth/login", response_model=Token)
 @handle_exceptions
-async def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
+async def login(data: LoginRequest, db: Session = Depends(get_db)):
     try:
         logger.info(f"Login attempt for email: {data.email}")
         result = crud.login_user(db, data)

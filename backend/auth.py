@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from backend.models import Driver
-from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, Token
+from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, Token, User
 from backend.database import SessionLocal
 import os
 
@@ -25,11 +25,17 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
+def create_access_token(data: dict, expires_delta: timedelta = None) -> Token:
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return Token(
+        access_token=encoded_jwt,
+        token_type="bearer",
+        user=to_encode.get("user"),
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
 
 def get_user(db: Session, email: str):
     return db.query(models.Driver).filter(models.Driver.email == email).first()
