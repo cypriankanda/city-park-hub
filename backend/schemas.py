@@ -35,6 +35,7 @@ class User(BaseModel):
     email: EmailStr
     phone: Optional[str]
     role: str
+    hashed_password: Optional[str]
     created_at: datetime
     updated_at: datetime
 
@@ -43,14 +44,11 @@ class User(BaseModel):
 
 class Booking(BaseModel):
     id: int
-    user_id: int = Field(..., alias='driver_id')
-    parking_spot_id: int = Field(..., alias='parking_space_id')
-    location: str
-    address: str
-    date: str
-    time: str
-    duration: str
-    price: str
+    driver_id: int
+    parking_space_id: int
+    start_time: datetime
+    end_time: datetime
+    duration_hours: float
     status: str
     payment_method: str
     created_at: datetime
@@ -65,15 +63,15 @@ class ParkingSpot(BaseModel):
     address: str
     latitude: float
     longitude: float
-    distance: Optional[str]
     available_spots: int
     total_spots: int
     price_per_hour: float
+    features: str
     rating: float
-    features: List[str]
-    walk_time: Optional[str]
     created_at: datetime
     updated_at: datetime
+    distance: Optional[str] = None
+    walk_time: Optional[str] = None
 
     class Config:
         from_attributes = True
