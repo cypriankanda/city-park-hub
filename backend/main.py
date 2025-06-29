@@ -17,9 +17,6 @@ Base.metadata.create_all(bind=engine)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize database
-models.Base.metadata.create_all(bind=engine)
-
 # Test database connection
 try:
     with engine.connect() as connection:
