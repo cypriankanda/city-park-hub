@@ -5,8 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
 
+from backend import schemas
 from backend.models import Driver, ParkingSpace, Booking, Base
-from backend.schemas import schemas, LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest, Token
 from backend.database import SessionLocal, engine
 from backend.auth import get_current_user
 

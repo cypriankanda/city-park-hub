@@ -39,7 +39,7 @@ class User(BaseModel):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Booking(BaseModel):
     id: int
@@ -57,7 +57,7 @@ class Booking(BaseModel):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ParkingSpot(BaseModel):
     id: int
@@ -76,7 +76,7 @@ class ParkingSpot(BaseModel):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class AdminActivity(BaseModel):
     id: int
@@ -88,7 +88,7 @@ class AdminActivity(BaseModel):
     type: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ParkingLocation(BaseModel):
     id: int
@@ -102,7 +102,7 @@ class ParkingLocation(BaseModel):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # ------------------ Request DTOs ------------------
 class CreateBookingRequest(BaseModel):
