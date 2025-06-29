@@ -9,7 +9,7 @@ from backend import crud
 from backend.models import Driver, ParkingSpace, Booking, Base
 from backend.database import SessionLocal, engine
 from backend.auth import get_current_user
-from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest
+from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest, Token
 
 # Initialize FastAPI app
 app = FastAPI()
