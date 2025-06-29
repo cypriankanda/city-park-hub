@@ -1,4 +1,5 @@
 # backend/crud.py
+import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime, timedelta
@@ -7,6 +8,10 @@ from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest,
 from backend.auth import get_password_hash, verify_password, create_access_token
 from sqlalchemy import or_
 from typing import Optional
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ------------------ AUTH ------------------
 def register_user(db: Session, data: RegisterRequest):
@@ -116,8 +121,37 @@ def extend_booking(db: Session, user, booking_id, data: schemas.ExtendBookingReq
     return {"booking": booking, "additional_cost": data.additional_hours * 20}
 
 # ------------------ PARKING ------------------
-def get_parking_spots(db: Session, lat, lng, radius, search, filter):
-    return db.query(models.ParkingSpace).all()
+def get_parking_spots(db: Session, lat: Optional[float], lng: Optional[float], radius: float, search: str, filter: str):
+    try:
+        query = db.query(models.ParkingSpace)
+        
+        # Apply location filter if coordinates are provided
+        if lat is not None and lng is not None:
+            query = query.filter(
+                models.ParkingSpace.latitude.between(lat - radius, lat + radius),
+                models.ParkingSpace.longitude.between(lng - radius, lng + radius)
+            )
+        
+        # Apply search filter
+        if search:
+            query = query.filter(
+                or_(
+                    models.ParkingSpace.name.ilike(f"%{search}%"),
+                    models.ParkingSpace.address.ilike(f"%{search}%")
+                )
+            )
+        
+        # Apply status filter
+        if filter == "available":
+            query = query.filter(models.ParkingSpace.available_spots > 0)
+        elif filter == "full":
+            query = query.filter(models.ParkingSpace.available_spots == 0)
+        
+        return query.all()
+        
+    except Exception as e:
+        logger.error(f"Error in get_parking_spots: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch parking spots")
 
 def get_parking_spot(db: Session, spot_id):
     return db.query(models.ParkingSpace).filter_by(id=spot_id).first()
