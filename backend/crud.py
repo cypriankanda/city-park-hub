@@ -1,4 +1,5 @@
 # backend/crud.py
+import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime, timedelta
@@ -9,6 +10,10 @@ from sqlalchemy import or_
 from typing import Optional
 
 # Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # ------------------ AUTH ------------------
