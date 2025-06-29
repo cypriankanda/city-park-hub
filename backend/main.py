@@ -9,7 +9,10 @@ from backend import crud
 from backend.models import Driver, ParkingSpace, Booking, Base
 from backend.database import SessionLocal, engine
 from backend.auth import get_current_user
-from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest, Token
+from backend import schemas
+from backend.models import Driver, ParkingSpace, Booking, Base
+from backend.database import SessionLocal, engine
+from backend.auth import get_current_user
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -85,7 +88,7 @@ def get_db():
 def root():
     return {"message": "ParkSmart API is running"}
 
-@app.post("/api/auth/login", response_model=schemas.Token)
+@app.post("/api/auth/login", response_model=Token)
 def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
     try:
         logger.info(f"Login attempt for email: {data.email}")
