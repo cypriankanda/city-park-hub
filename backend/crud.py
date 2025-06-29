@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime, timedelta
-from backend import models
+from backend import models, schemas
 from backend.schemas import RegisterRequest, LoginRequest, ResetPasswordRequest, VerifyResetRequest, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest
 from backend.auth import get_password_hash, verify_password, create_access_token
 from sqlalchemy import or_
