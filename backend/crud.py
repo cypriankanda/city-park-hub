@@ -34,7 +34,8 @@ def register_user(db: Session, data: RegisterRequest):
     db.commit()
     db.refresh(new_user)
 
-    user_data = schemas.User.from_orm(new_user).model_dump()
+    user_data = schemas.UserResponse.from_orm(new_user).model_dump()
+    # The token payload should also be lean, but for now, we pass the same response data.
     access_token = create_access_token({"sub": new_user.email, "user": user_data})
     return {
         "access_token": access_token,
@@ -54,7 +55,8 @@ def login_user(db: Session, data: LoginRequest):
             logger.info(f"Login failed: Invalid password for user {user.id}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        user_data = schemas.User.from_orm(user).model_dump()
+        user_data = schemas.UserResponse.from_orm(user).model_dump()
+        # The token payload should also be lean, but for now, we pass the same response data.
         access_token = create_access_token({"sub": user.email, "user": user_data})
         logger.info(f"Login successful for user {user.id}")
         return {
