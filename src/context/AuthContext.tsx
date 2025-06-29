@@ -40,12 +40,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       const data = response.data;
-      authService.setToken(data.token);
-      setToken(data.token);
+      const { access_token, user: userData } = data;
+
+      authService.setToken(access_token);
+      setToken(access_token);
       
-      // Decode token to get user data
-      const decoded = jwtDecode(data.token);
-      setUser(decoded);
+      // Prefer user data from response; fallback to decoded token
+      let decoded: any = null;
+      try {
+        decoded = jwtDecode(access_token);
+      } catch (err) {
+        console.error('Invalid token', err);
+      }
+      setUser(userData ?? decoded);
     } catch (error) {
       console.error('Login error:', error);
       throw error;

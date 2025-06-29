@@ -34,8 +34,14 @@ def register_user(db: Session, data: RegisterRequest):
     db.commit()
     db.refresh(new_user)
 
-    token = create_access_token({"sub": new_user.email, "user": schemas.User.from_orm(new_user).model_dump()})
-    return {**token.model_dump(), "user": new_user}
+    user_data = schemas.User.from_orm(new_user).model_dump()
+    access_token = create_access_token({"sub": new_user.email, "user": user_data})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user_data,
+        "expires_in": 1800
+    }
 
 def login_user(db: Session, data: LoginRequest):
     try:
@@ -48,9 +54,15 @@ def login_user(db: Session, data: LoginRequest):
             logger.info(f"Login failed: Invalid password for user {user.id}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        token = create_access_token({"sub": user.email, "user": schemas.User.from_orm(user).model_dump()})
+        user_data = schemas.User.from_orm(user).model_dump()
+        access_token = create_access_token({"sub": user.email, "user": user_data})
         logger.info(f"Login successful for user {user.id}")
-        return {**token.model_dump(), "user": user}
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user_data,
+            "expires_in": 1800
+        }
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
         raise

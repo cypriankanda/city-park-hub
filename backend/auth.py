@@ -25,17 +25,12 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def create_access_token(data: dict, expires_delta: timedelta = None) -> Token:
+def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return Token(
-        access_token=encoded_jwt,
-        token_type="bearer",
-        user=to_encode.get("user"),
-        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
-    )
+    return encoded_jwt
 
 def get_user(db: Session, email: str):
     return db.query(models.Driver).filter(models.Driver.email == email).first()
