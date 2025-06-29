@@ -2,7 +2,9 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime, timedelta
-from backend import models, schemas, auth
+from backend.models import Driver, Vehicle, ParkingSpace
+from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User
+from backend.auth import get_password_hash, verify_password, create_access_token
 from sqlalchemy import or_
 
 # ------------------ AUTH ------------------

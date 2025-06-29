@@ -5,9 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-import models, schemas, crud
-from .database import SessionLocal, engine
-from .auth import get_current_user
+from backend import models, schemas, crud
+from backend.database import SessionLocal, engine
+from backend.auth import get_current_user
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
