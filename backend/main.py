@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from backend.models import Driver, ParkingSpace, Booking, Base
-from backend.schemas import LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest
+from backend.schemas import schemas, LoginRequest, RegisterRequest, ResetPasswordRequest, VerifyResetRequest, User, CreateBookingRequest, UpdateBookingRequest, ExtendBookingRequest, BookSpotRequest, LocationRequest, Token
 from backend.database import SessionLocal, engine
 from backend.auth import get_current_user
 
@@ -16,6 +16,18 @@ Base.metadata.create_all(bind=engine)
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Initialize FastAPI app
+app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Test database connection
 try:
