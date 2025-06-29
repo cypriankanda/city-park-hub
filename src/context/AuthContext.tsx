@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // ✅ correct
-
-
+import { jwtDecode } from 'jwt-decode';
+import { apiClient } from '@/lib/api-client';
 import { authService } from '../lib/auth';
 
 interface AuthContextType {
@@ -34,34 +33,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string, rememberMe: boolean) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          email,
-          password,
-          remember_me: rememberMe
-        }),
+      const response = await apiClient.post('/api/auth/login', {
+        email,
+        password,
+        remember_me: rememberMe
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Login API Error:', error);
-        throw new Error(error.detail || error.error || 'Login failed');
-      }
-
-      const data = await response.json();
+      const data = response.data;
       authService.setToken(data.token);
       setToken(data.token);
       
       // Decode token to get user data
       const decoded = jwtDecode(data.token);
       setUser(decoded);
-
     } catch (error) {
       console.error('Login error:', error);
       throw error;

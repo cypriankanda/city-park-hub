@@ -1,33 +1,20 @@
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { format, parse } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
-import { format, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { parkingApi } from '../lib/api-client';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { bookingApi } from '@/lib/api-client';
 import { ParkingSpot } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 
 const formSchema = z.object({
   startTime: z.string().min(1, {
@@ -37,15 +24,12 @@ const formSchema = z.object({
     message: "End time is required",
   }),
 }).refine((data) => {
-  if (data.startTime && data.endTime) {
-    const start = parse(data.startTime, 'HH:mm', new Date());
-    const end = parse(data.endTime, 'HH:mm', new Date());
-    return end > start;
-  }
-  return true;
+  const start = parse(data.startTime, 'HH:mm', new Date());
+  const end = parse(data.endTime, 'HH:mm', new Date());
+  return end > start;
 }, {
   message: "End time must be after start time",
-  path: ["endTime"],
+  path: ["endTime"]
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,115 +38,90 @@ interface BookingModalProps {
   spot: ParkingSpot;
   isOpen: boolean;
   onClose: () => void;
-  localKw: string;
+  localKw?: string;
   onSuccess?: () => void;
 }
 
-export default function BookingModal({
+const BookingModal: React.FC<BookingModalProps> = ({
   spot,
   isOpen,
   onClose,
   localKw,
   onSuccess
-}: BookingModalProps) {
+}) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState<Date>();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>("");
-  const [startTime, setStartTime] = useState<Date>();
-  const [endTime, setEndTime] = useState<Date>();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [startTime, setStartTime] = useState<string>(format(new Date(), 'HH:mm'));
+  const [endTime, setEndTime] = useState<string>(format(new Date(new Date().getTime() + 2 * 60 * 60 * 1000), 'HH:mm'));
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      startTime: format(new Date(), "HH:mm"),
-      endTime: format(new Date(new Date().getTime() + 2 * 60 * 60 * 1000), "HH:mm"),
-    },
+      startTime: format(new Date(), 'HH:mm'),
+      endTime: format(new Date(new Date().getTime() + 2 * 60 * 60 * 1000), 'HH:mm')
+    }
   });
 
-  const onSubmit = async (values: FormValues) => {
-    if (!selectedDate) return;
-    setIsLoading(true);
-    setError("");
+  const onSubmit = async (data: FormValues) => {
     try {
-      // Combine date and time inputs
-      const startDateTime = new Date(selectedDate);
-      const endDateTime = new Date(selectedDate);
+      // If selectedDate exists, use it as the base date
+      const baseDate = selectedDate || new Date();
       
-      // Set hours and minutes from time inputs
-      const [startHour, startMinute] = values.startTime.split(':').map(Number);
-      const [endHour, endMinute] = values.endTime.split(':').map(Number);
+      // Get hours and minutes from form values
+      const [startHour, startMinute] = data.startTime.split(':').map(Number);
+      const [endHour, endMinute] = data.endTime.split(':').map(Number);
+
+      // Create date objects with the selected date and form times
+      const startDateTime = new Date(baseDate);
+      const endDateTime = new Date(baseDate);
       
       startDateTime.setHours(startHour, startMinute, 0, 0);
       endDateTime.setHours(endHour, endMinute, 0, 0);
 
-      // Ensure dates are in UTC format
-      const startUTC = new Date(Date.UTC(
-        startDateTime.getUTCFullYear(),
-        startDateTime.getUTCMonth(),
-        startDateTime.getUTCDate(),
-        startDateTime.getUTCHours(),
-        startDateTime.getUTCMinutes(),
-        startDateTime.getUTCSeconds()
-      ));
-
-      const endUTC = new Date(Date.UTC(
-        endDateTime.getUTCFullYear(),
-        endDateTime.getUTCMonth(),
-        endDateTime.getUTCDate(),
-        endDateTime.getUTCHours(),
-        endDateTime.getUTCMinutes(),
-        endDateTime.getUTCSeconds()
-      ));
+      // Calculate duration in hours
+      const durationHours = Math.round((endDateTime.getTime() - startDateTime.getTime()) / (60 * 60 * 1000));
 
       const bookingData = {
-        start_time: startUTC.toISOString(),
-        duration_hours: Math.round((endUTC.getTime() - startUTC.getTime()) / (60 * 60 * 1000)),
-        local_kw: localKw
+        parking_space_id: spot.id,
+        start_time: startDateTime.toISOString().replace('T', ' ').substring(0, 19),
+        end_time: endDateTime.toISOString().replace('T', ' ').substring(0, 19),
+        duration_hours: durationHours,
+        local_kw: localKw || 'NAIROBI'
       };
 
-      console.log('Booking data:', {
-        start_time: bookingData.start_time,
-        duration_hours: bookingData.duration_hours,
-        local_kw: bookingData.local_kw
-      });
-
-      try {
-        const response = await parkingApi.bookSpot(spot.id, bookingData);
-        console.log('Booking response:', response);
-        
-        // Invalidate and refetch bookings
-        queryClient.invalidateQueries({ queryKey: ['bookings'] });
-        
-        onClose();
-        onSuccess?.();
-      } catch (error: any) {
-        console.error('Booking error:', {
-          message: error.message,
-          stack: error.stack,
-          response: error.response?.data
-        });
-        
-        if (error.message === 'Not authenticated') {
-          toast.error('Please log in first');
-          navigate('/login');
-        } else {
-          setError(error.message || 'Failed to create booking');
-          toast.error(error.message || 'Failed to create booking');
-        }
-      } finally {
-        setIsLoading(false);
-      }
+      setIsLoading(true);
+      await bookingApi.create(bookingData, "NAIROBI");
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      onClose();
+      if (onSuccess) onSuccess();
     } catch (error: any) {
-      console.error('Booking error:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data
-      });
+      console.error('Booking error:', error);
       
-      setError(error.message || 'Failed to create booking');
-      toast.error(error.message || 'Failed to create booking');
+      // Extract error details if available
+      let errorMessage = 'Failed to create booking';
+      
+      if (error.response?.data?.detail) {
+        if (Array.isArray(error.response.data.detail)) {
+          const errorDetails = error.response.data.detail.map((err: any) => {
+            if (typeof err === 'string') return err;
+            if (err.loc && err.msg) return `${err.loc.join('.')}: ${err.msg}`;
+            if (err.type && err.msg) return `${err.type}: ${err.msg}`;
+            if (err.msg) return err.msg;
+            if (err.detail) return err.detail;
+            if (err.error) return err.error;
+            return 'Unknown error';
+          });
+          errorMessage = errorDetails.join(', ');
+        } else if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +131,7 @@ export default function BookingModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Book Parking Spot</DialogTitle>
+          <DialogTitle>Book Parking Space</DialogTitle>
           <DialogDescription>
             Book a parking spot at {spot.name}
           </DialogDescription>
@@ -185,34 +144,16 @@ export default function BookingModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Start Time</FormLabel>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4 text-gray-400" />
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        disabled={(date) => date < new Date()}
-                        className="rounded-md border"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FormControl>
-                        <Input
-                          type="time"
-                          value={field.value}
-                          onChange={(e) => {
-                            field.onChange(e.target.value);
-                            const time = new Date();
-                            time.setHours(parseInt(e.target.value.split(":")[0]));
-                            time.setMinutes(parseInt(e.target.value.split(":")[1]));
-                            setStartTime(time);
-                          }}
-                          disabled={!selectedDate}
-                        />
-                      </FormControl>
-                    </div>
-                  </div>
+                  <FormControl>
+                    <Input
+                      type="time"
+                      value={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        setStartTime(e.target.value);
+                      }}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -223,22 +164,17 @@ export default function BookingModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>End Time</FormLabel>
-                  <div className="flex items-center gap-2">
-                    <FormControl>
-                      <Input
-                        type="time"
-                        value={field.value}
-                        onChange={(e) => {
-                          field.onChange(e.target.value);
-                          const time = new Date();
-                          time.setHours(parseInt(e.target.value.split(":")[0]));
-                          time.setMinutes(parseInt(e.target.value.split(":")[1]));
-                          setEndTime(time);
-                        }}
-                        disabled={!selectedDate || !startTime}
-                      />
-                    </FormControl>
-                  </div>
+                  <FormControl>
+                    <Input
+                      type="time"
+                      value={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        setEndTime(e.target.value);
+                      }}
+                      disabled={!selectedDate || !startTime}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -256,4 +192,6 @@ export default function BookingModal({
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export { BookingModal };

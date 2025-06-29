@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from backend import models, schemas, crud
+import models, schemas, crud
 from .database import SessionLocal, engine
 from .auth import get_current_user
 
@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 # Initialize database
 models.Base.metadata.create_all(bind=engine)
 
+# Test database connection
+try:
+    with engine.connect() as connection:
+        logger.info("Successfully connected to database")
+except Exception as e:
+    logger.error(f"Failed to connect to database: {str(e)}")
+
 # Create FastAPI app
 app = FastAPI(title="City Park Hub API", version="1.0.0")
 
@@ -23,13 +30,13 @@ app = FastAPI(title="City Park Hub API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:8080",
         "http://localhost:3000",
-        "http://127.0.0.1:8080",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",  # Vite dev server
+        "http://127.0.0.1:5173",  # Vite dev server
         "https://city-park-hub-1rf7.onrender.com",
         "https://*.vercel.app",
         "https://*.vercel.live",
-        "http://127.0.0.1:5173"  # Vite development server
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -54,17 +61,31 @@ def root():
 
 @app.post("/api/auth/login", response_model=schemas.Token)
 def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
-    return crud.login_user(db, data)
+    try:
+        logger.info(f"Login attempt for email: {data.email}")
+        result = crud.login_user(db, data)
+        logger.info("Login successful")
+        return result
+    except HTTPException as e:
+        logger.error(f"Login failed: {str(e.detail)}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/auth/register")
 async def register(data: schemas.RegisterRequest, db: Session = Depends(get_db)):
     try:
-        return crud.register_user(db, data)
-    except HTTPException:
+        logger.info(f"Registration attempt for email: {data.email}")
+        result = crud.register_user(db, data)
+        logger.info("Registration successful")
+        return result
+    except HTTPException as e:
+        logger.error(f"Registration failed: {str(e.detail)}")
         raise
     except Exception as e:
-        logger.error(f"Registration failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Unexpected error during registration: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/auth/reset-password")
 def reset_password(data: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
@@ -107,7 +128,7 @@ def list_bookings(
 @app.post("/api/bookings")
 def create_booking(
     data: schemas.CreateBookingRequest, 
-    local_kw: str,
+    local_kw: str = "NAIROBI",
     current_user: schemas.User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):

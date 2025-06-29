@@ -86,7 +86,14 @@ export default function Booking() {
           </div>
 
           <BookingModal
-            spot={selectedSpot || parkingSpots?.[0] || { id: 0, name: '' }}
+            spot={selectedSpot || parkingSpots?.[0] || { 
+              id: 0, 
+              name: '', 
+              address: '', 
+              availableSpots: 0, 
+              totalSpots: 0, 
+              pricePerHour: 0 
+            }}
             isOpen={isBookingModalOpen}
             onClose={() => setIsBookingModalOpen(false)}
             localKw="NAIROBI"
