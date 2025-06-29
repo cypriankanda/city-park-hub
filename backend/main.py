@@ -10,6 +10,18 @@ from backend.models import Driver, ParkingSpace, Booking, Base
 from backend.database import SessionLocal, engine
 from backend.auth import get_current_user
 
+# Initialize FastAPI app
+app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
 
