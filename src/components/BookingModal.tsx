@@ -13,6 +13,7 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { bookingApi } from '@/lib/api-client';
+import { mockCreateBooking } from '@/lib/mock-api';
 import { ParkingSpot } from '@/lib/api-client';
 import { toast } from 'sonner';
 
@@ -64,6 +65,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
     }
   });
 
+  const useMock = import.meta.env.VITE_USE_MOCK === 'true';
   const onSubmit = async (data: FormValues) => {
     try {
       // If selectedDate exists, use it as the base date
@@ -92,7 +94,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
       };
 
       setIsLoading(true);
-      await bookingApi.create(bookingData, "NAIROBI");
+      if (useMock) {
+        await mockCreateBooking();
+      } else {
+        await bookingApi.create(bookingData, "NAIROBI");
+      }
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       onClose();
       if (onSuccess) onSuccess();
