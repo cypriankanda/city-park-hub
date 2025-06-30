@@ -38,10 +38,12 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:5173",  # Vite dev server
         "http://127.0.0.1:5173",  # Vite dev server
+        # Production URLs
+        "https://city-park-hub.vercel.app",
         "https://city-park-hub-1rf7.onrender.com",
-        "https://*.vercel.app",
-        "https://*.vercel.live",
     ],
+    # Accept any other Vercel preview or custom sub-domain as well
+    allow_origin_regex=r"https://.*\\.vercel\\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
