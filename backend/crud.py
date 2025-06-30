@@ -31,7 +31,17 @@ def register_user(db: Session, data: RegisterRequest):
         hashed_password=hashed_pw
     )
     db.add(new_user)
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        # Detect unique-key violation (e.g., duplicate e-mail)
+        from sqlalchemy.exc import IntegrityError
+        if isinstance(e, IntegrityError):
+            logger.warning("Email already exists (race condition): %s", data.email)
+            raise HTTPException(status_code=400, detail="Email already registered")
+        logger.error("Unexpected DB error during registration: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Registration failed")
     db.refresh(new_user)
 
     user_data = schemas.UserResponse.from_orm(new_user).model_dump()
