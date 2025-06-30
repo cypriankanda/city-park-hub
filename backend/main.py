@@ -52,8 +52,8 @@ app.add_middleware(
 )
 
 # Dependency to get DB session
-def get_db():
-    db = SessionLocal()
+def get_db(**kwargs):  # Accept extraneous query params to avoid injection errors
+    db = SessionLocal()  # kwargs ignored
     try:
         yield db
     finally:
