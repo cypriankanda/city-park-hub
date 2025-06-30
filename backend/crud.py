@@ -113,8 +113,10 @@ def get_user_bookings(db: Session, user, status, search):
 
 def create_booking(db: Session, user, data: CreateBookingRequest):
     spot = db.query(models.ParkingSpace).filter_by(id=data.parking_space_id).first()
-    if not spot or spot.available_spots <= 0:
-        raise HTTPException(status_code=404, detail="Spot not available")
+    if not spot:
+        raise HTTPException(status_code=404, detail="Parking space not found")
+    if spot.available_spots <= 0:
+        raise HTTPException(status_code=409, detail="Parking space is full")
 
     booking = models.Booking(
         driver_id=user.id,
@@ -122,13 +124,21 @@ def create_booking(db: Session, user, data: CreateBookingRequest):
         start_time=data.start_time,
         end_time=data.end_time,
         duration_hours=data.duration_hours,
-        payment_method="card"  # Updated to match frontend
+        payment_method="card"
     )
+
     spot.available_spots -= 1
     db.add(booking)
-    db.commit()
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Failed to create booking: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not create booking")
+
     db.refresh(booking)
-    return {"booking": booking}
+    return {"booking": schemas.Booking.from_orm(booking)}
 
 def update_booking(db: Session, user, booking_id, data: UpdateBookingRequest):
     booking = db.query(models.Booking).filter_by(id=booking_id, driver_id=user.id).first()
