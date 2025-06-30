@@ -46,7 +46,8 @@ def register_user(db: Session, data: RegisterRequest):
 
     user_data = schemas.UserResponse.from_orm(new_user).model_dump()
     # The token payload should also be lean, but for now, we pass the same response data.
-    access_token = create_access_token({"sub": new_user.email, "user": user_data})
+    # Only include minimal JSON-serializable data in JWT payload
+    access_token = create_access_token({"sub": new_user.email})
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -67,7 +68,8 @@ def login_user(db: Session, data: LoginRequest):
 
         user_data = schemas.UserResponse.from_orm(user).model_dump()
         # The token payload should also be lean, but for now, we pass the same response data.
-        access_token = create_access_token({"sub": user.email, "user": user_data})
+        # Only include minimal JSON-serializable data in JWT payload
+        access_token = create_access_token({"sub": user.email})
         logger.info(f"Login successful for user {user.id}")
         return {
             "access_token": access_token,
