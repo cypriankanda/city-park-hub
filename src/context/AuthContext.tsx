@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { apiClient } from '@/lib/api-client';
@@ -22,7 +23,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (token) {
       try {
         const decoded: any = jwtDecode(token);
-
         setUser({ email: decoded.sub });
       } catch (err) {
         console.error('Invalid token', err);
@@ -53,8 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Invalid token', err);
       }
       setUser(userData ?? decoded);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Check if it's a demo login attempt and provide helpful error message
+      if (email.includes('demo') || email.includes('admin')) {
+        throw new Error('Demo login failed. Please ensure the backend demo users are seeded properly.');
+      }
+      
       throw error;
     }
   };

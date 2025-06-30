@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Car, Mail, Lock, Eye, EyeOff, Users, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,17 +14,38 @@ const Login = () => {
     password: '',
     rememberMe: false
   });
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       await login(formData.email, formData.password, formData.rememberMe);
       navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
       alert('Login failed. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async (userType: 'user' | 'admin') => {
+    setIsLoading(true);
+    try {
+      if (userType === 'user') {
+        await login('demo@parksmart.com', 'demo123', false);
+      } else {
+        await login('admin@parksmart.com', 'admin123', false);
+      }
+      navigate(userType === 'admin' ? '/admin' : '/dashboard');
+    } catch (err) {
+      console.error('Demo login error:', err);
+      alert('Demo login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -41,6 +63,40 @@ const Login = () => {
             <p className="text-gray-600">Sign in to your ParkSmart account</p>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Demo Login Buttons */}
+            <div className="space-y-3">
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700 mb-3">Try Demo Login</p>
+              </div>
+              <Button
+                type="button"
+                onClick={() => handleDemoLogin('user')}
+                disabled={isLoading}
+                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Demo User Login
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleDemoLogin('admin')}
+                disabled={isLoading}
+                className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
+              >
+                <UserCheck className="h-4 w-4" />
+                Demo Admin Login
+              </Button>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">Or continue with email</span>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email</label>
@@ -91,8 +147,12 @@ const Login = () => {
                   Forgot password?
                 </Link>
               </div>
-              <Button type="submit" className="w-full h-12 bg-parking-navy hover:bg-blue-800 text-white font-semibold rounded-lg">
-                Sign In
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="w-full h-12 bg-parking-navy hover:bg-blue-800 text-white font-semibold rounded-lg"
+              >
+                {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
             <div className="text-center text-sm text-gray-600">
